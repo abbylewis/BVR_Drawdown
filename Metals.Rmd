@@ -1,0 +1,32 @@
+---
+title: "Drawdown metals"
+author: "Abby Lewis"
+date: "7/22/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+library(akima)
+library(colorRamps)
+library(RCurl)
+```
+
+BVR metals 0.1 m
+```{r}
+metals <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/455/7/e71d70cac1650610e6a3fbbf7928007f")
+
+metals$Date_22 = metals$Date
+year(metals$Date_22)=2022
+year(metals$Date)[year(metals$Date)==22]<-2022
+metals$Year = as.factor(year(metals$Date))
+
+export = metals%>%
+  filter(Reservoir == "BVR",
+         Depth_m == 0.1,
+         Site==50)
+
+write.csv(export,"./Processed_data/Metals at 0.1m.csv",row.names=F)
+```
