@@ -36,54 +36,32 @@ library(ggh4x)
 library(cowplot)
 
 #Define drawdown lines
-lines = data.frame(Dates = as.Date(c("2022-06-28", "2022-05-19","2022-05-28", "2022-07-01")), desc = c("closed","opened", "decreasing", "stable"), type = c("close","open","open","close"), status = c("init","init","final","final"), Year = 2022, year_class = "2022")
-#Only plot pipe manipulations for now
-lines = lines%>%
-  filter(status == "init")
+lines_rect = data.frame(closed = as.Date("2022-06-28"), opened = as.Date("2022-05-19"), Year = 2022, year_class = "2022")
 #Re-format for rectangle instead of discrete lines
-lines_rect = lines%>%
-  select(-type)%>%
-  pivot_wider(names_from = desc, values_from = Dates)
+
+theme_set(
+  theme_bw()+
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size=9),
+        strip.background = element_blank(),
+        strip.text.x = element_blank(),
+        legend.position = "none",
+        plot.margin = unit(c(0.1,0,0,0), "cm"),
+        legend.title=element_blank(),
+        legend.background = element_blank(),
+        legend.key= element_blank(),
+        legend.spacing.y = unit(0, 'cm'),
+        legend.text=element_text(size=7)
+        )
+  )
+        
 ```
 
 Code chunk 2: Load and format chemistry data
 ```{r Load and format chemistry data}
-inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/199/11/509f39850b6f95628d10889d66885b76" 
-infile1 <- tempfile()
-try(download.file(inUrl1,infile1,method="curl"))
-if (is.na(file.size(infile1))) download.file(inUrl1,infile1,method="auto")
-
-                   
- dt1 <-read.csv(infile1,header=F 
-          ,skip=1
-            ,sep=","  
-        , col.names=c(
-                    "Reservoir",     
-                    "Site",     
-                    "DateTime",     
-                    "Depth_m",     
-                    "Rep",     
-                    "TN_ugL",     
-                    "TP_ugL",     
-                    "NH4_ugL",     
-                    "NO3NO2_ugL",     
-                    "SRP_ugL",     
-                    "DOC_mgL",     
-                    "DIC_mgL",     
-                    "DC_mgL",     
-                    "DN_mgL",     
-                    "Flag_DateTime",     
-                    "Flag_TN_ugL",     
-                    "Flag_TP_ugL",     
-                    "Flag_NH4_ugL",     
-                    "Flag_NO3NO2_ugL",     
-                    "Flag_SRP_ugL",     
-                    "Flag_DOC_mgL",     
-                    "Flag_DIC_mgL",     
-                    "Flag_DC_mgL",     
-                    "Flag_DN_mgL"    ), check.names=TRUE)
-               
-unlink(infile1)
+dt1  <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/199/11/509f39850b6f95628d10889d66885b76")
 
 #QAQC following conversation with CCC and HLW
 dt1 = dt1%>%
@@ -107,49 +85,7 @@ year(chem_full$Date_22)<-2022
 Code chunk 3: Load fluora data from EDI
 ```{r Load fluora data from EDI}
 #Load data
-inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/272/7/001cb516ad3e8cbabe1fdcf6826a0a45"
-infile1 <- tempfile()
-try(download.file(inUrl1,infile1,method="curl"))
-if (is.na(file.size(infile1))) download.file(inUrl1,infile1,method="auto")
-
-                   
- dt1 <-read.csv(infile1,header=F 
-          ,skip=1
-            ,sep=","  
-        , col.names=c(
-                    "Reservoir",     
-                    "Site",     
-                    "DateTime",     
-                    "Depth_m",     
-                    "GreenAlgae_ugL",     
-                    "Bluegreens_ugL",     
-                    "BrownAlgae_ugL",     
-                    "MixedAlgae_ugL",     
-                    "YellowSubstances_ugL",     
-                    "TotalConc_ugL",     
-                    "Transmission",     
-                    "Temp_degC",     
-                    "RFU_525nm",     
-                    "RFU_570nm",     
-                    "RFU_610nm",     
-                    "RFU_370nm",     
-                    "RFU_590nm",     
-                    "RFU_470nm",     
-                    "Flag_GreenAlgae",     
-                    "Flag_BluegreenAlgae",     
-                    "Flag_BrownAlgae",     
-                    "Flag_MixedAlgae",     
-                    "Flag_TotalConc",     
-                    "Flag_Temp",     
-                    "Flag_Transmission",     
-                    "Flag_525nm",     
-                    "Flag_570nm",     
-                    "Flag_610nm",     
-                    "Flag_370nm",     
-                    "Flag_590nm",     
-                    "Flag_470nm"    ), check.names=TRUE)
-               
-unlink(infile1)
+dt1  <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/272/7/001cb516ad3e8cbabe1fdcf6826a0a45")
 
 #Extract surface data
 fluora_surface=dt1%>%
@@ -166,29 +102,26 @@ fluora_surface=dt1%>%
 
 Code chunk 4: Load other saved data for line plots
 ```{r Load other saved data for line plots}
+#From physical metrics script
 thermo_depth = read.csv("./Data/thermocline_depth.csv")%>%
   filter(year(Date)%in%c(2022,2021))
 
+#From CTD data processing script
 light = read.csv("./Data/attenuation_calc.csv")%>%
   filter(year(Date)%in%c(2021,2022))
 
-ctd = read.csv("./Data/CTD at 0.1m.csv")%>%
+ctd = read.csv("Processed_data/CTD at 0.1m.csv")%>%
   filter(year(Date)%in%c(2021,2022))
 
+#Where does this come from
 ghg = read.csv("./Data/GHG at 0.1m.csv")%>%
   filter(year(DateTime)%in%c(2021,2022))
 
-metals_raw = read.csv("./Data/Metals at 0.1m.csv")%>%
+#From metals script
+metals = read.csv("Processed_data/Metals at 0.1m.csv")%>%
   filter(year(Date)%in%c(2021,2022))
-#Additional QAQC needed (Days where soluble>total)
-metals = metals_raw%>%
-  mutate(TFe_mgL = ifelse(Date=="2022-05-09",metals_raw$SFe_mgL[metals_raw$Date=="2022-05-09"],TFe_mgL),
-         TMn_mgL = ifelse(Date=="2022-05-09",metals_raw$SMn_mgL[metals_raw$Date=="2022-05-09"],TMn_mgL),
-         SFe_mgL = ifelse(Date=="2022-05-09",metals_raw$TFe_mgL[metals_raw$Date=="2022-05-09"],SFe_mgL),
-         SMn_mgL = ifelse(Date=="2022-05-09",metals_raw$TMn_mgL[metals_raw$Date=="2022-05-09"],SMn_mgL),
-         TFe_mgL = ifelse(Date=="2022-06-07",NA,TFe_mgL),
-         TMn_mgL = ifelse(Date=="2022-06-07",NA,TMn_mgL))
 
+#From fluora script
 cmax_depth = read.csv("./Data/FP_CmaxDepth.csv")%>%
   filter(year(Date)%in%c(2021,2022))
 
@@ -213,14 +146,11 @@ sum_plot3 = thermo_depth%>%
   mutate(Year = year(DateTime),
          color = name,
          name = ifelse(name%in%c("SFe_mgL","TFe_mgL"),"Fe_mgL",name),
-         name = ifelse(name%in%c("SMn_mgL","TMn_mgL"),"Mn_mgL",name))%>% #Re-format to put solubles in the same plot as totals
-  mutate(name = factor(name, levels=c("thermo","DOsat_percent","Fe_mgL","Mn_mgL")),
-         color = factor(color, levels=c("thermo","DOsat_percent","TFe_mgL","TMn_mgL","SFe_mgL","SMn_mgL")),
-         lty = ifelse(color %in%c("SFe_mgL","SMn_mgL"),"dashed","solid"))
+         name = ifelse(name%in%c("SMn_mgL","TMn_mgL"),"Mn_mgL",name)) #Re-format to put solubles in the same plot as totals
 
 #Calculate maximum values
 maxes = sum_plot3%>%
-  group_by(name, color,lty,Year)%>%
+  group_by(name, color,Year)%>%
   summarize(max_date = DateTime[which.max(value)],
             min_date = DateTime[which.min(value)])%>%
   filter(Year=="2022")%>%
@@ -256,8 +186,6 @@ sum_plot3%>%
   mutate(max_date = ifelse(name %in% c("thermo","Zeu","DO_mgL","DOsat_percent"),min_date,max_date))
 
 # New facet label names for sum_plot
-fac.labs <- c("Surface DO\n(mgL)","Fe (mg/L)","Mn (mg/L)","Thermocline\ndepth (m)","Surface DO\n(% saturation)")
-names(fac.labs) <- c("DO_mgL","Fe_mgL","Mn_mgL","thermo","DOsat_percent")
 scales <- list(
   scale_y_reverse(limits = c(NA,0)),
   scale_y_continuous(),
@@ -270,219 +198,91 @@ scales <- list(
 ```{r Plot for oxygen Figure}
 a<-sum_plot3%>%
   filter(name=="thermo")%>%
-  mutate(show_points = ifelse(name == "thermo","n","y"))%>%
   ggplot()+
   geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
-  #geom_point(aes(alpha = show_points, color = name,x = DateTime, y = value))+
-  geom_line(aes(x = DateTime, y = value, lty = lty, color = name))+
-  scale_alpha_manual(values = c(0,1))+
+  geom_line(aes(x = DateTime, y = value, color = name))+
   geom_vline(aes(xintercept = 19177, color = "thermo"), lwd = 2, alpha = 0.3, show.legend = F)+
-  #geom_vline(data=lines,aes(xintercept = Dates), show.legend = F)+
-  scale_linetype_manual(values = c("solid","11"),
-                        breaks = c("solid","dashed"),
-                        labels = c("Total","Soluble"),)+
-  scale_color_manual(values = c("darkblue","cyan4","lightsalmon","coral4"))+
-  facet_grid(rows = NULL,cols = vars(Year), scales = "free", switch = "y",
-             labeller = labeller(name = fac.labs))+
-  theme_bw()+
-  labs(y="Thermocline \ndepth (m)",
-       x="")+
+  scale_color_manual(values = c("darkblue"))+
+  facet_grid(cols = vars(Year), scales = "free", switch = "y")+
+  labs(y="Thermocline \ndepth (m)")+
   theme(strip.placement = "outside", 
-        strip.text.x = element_text(
-        size = 12, face = "bold"
-        ),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size=9),
-        strip.background = element_blank(),
-        legend.position = "none",
-        #legend.title=element_blank(),
-        #legend.background = element_blank(),
-        #legend.key= element_blank(),
-        #legend.spacing.y = unit(0, 'cm'),
-        #legend.text=element_text(size=7),
-        plot.margin = unit(c(0.1,0,0,0), "cm")
-        )+
-  #guides(lty = "none",
-         #color = guide_legend(byrow = TRUE,keyheight = 0.75),
-         #alpha = "none")+
-   facetted_pos_scales(y = scales)+
+        strip.text.x = element_text(size = 12, face = "bold"))+
+  facetted_pos_scales(y = scales)+
   force_panelsizes(rows = unit(.8, "in"),
                    cols = unit(2.5, "in"))
 
-
 b<-sum_plot3%>%
   filter(name=="DOsat_percent")%>%
-  mutate(show_points = ifelse(name == "thermo","n","y"))%>%
   ggplot()+
   geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
   geom_point(aes(color = name,x = DateTime, y = value))+
-  geom_line(aes(x = DateTime, y = value, lty = lty, color = name))+
-  scale_alpha_manual(values = c(0,1))+
+  geom_line(aes(x = DateTime, y = value, color = name))+
   geom_vline(aes(xintercept = 19184, color = "DOsat_percent"), lwd = 2, alpha = 0.3, show.legend = F)+
-  #geom_vline(data=lines,aes(xintercept = Dates), show.legend = F)+
-  scale_linetype_manual(values = c("solid","11"),
-                        breaks = c("solid","dashed"),
-                        labels = c("Total","Soluble"),)+
-  scale_color_manual(values = c("cyan4","lightsalmon","coral4"))+
-  facet_grid(rows = NULL,cols = vars(Year), scales = "free", switch = "y",
-             labeller = labeller(name = fac.labs))+
-  theme_bw()+
-  labs(y="  Surface DO \n (% saturation)",
-       x="")+
-  theme(#strip.placement = "outside", 
-        #strip.text.x = element_text(
-        #size = 12, face = "bold"
-        #),
-        strip.text.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size=9),
-        strip.background = element_blank(),
-        legend.position = "none",
-        legend.title=element_blank(),
-        legend.background = element_blank(),
-        legend.key= element_blank(),
-        legend.spacing.y = unit(0, 'cm'),
-        legend.text=element_text(size=7),
-        plot.margin = unit(c(-.88,0,-.9,0), "cm")
-        )+
-  #guides(lty = "none",
-         #color = guide_legend(byrow = TRUE,keyheight = 0.75),
-         #alpha = "none")+
-   #facetted_pos_scales(y = scales)+
+  scale_color_manual(values = c("cyan4"))+
+  facet_grid(cols = vars(Year), scales = "free", switch = "y")+
+  labs(y="  Surface DO \n (% saturation)")+
   force_panelsizes(rows = unit(.75, "in"),
                    cols = unit(2.5, "in"))
 
 # Filter Iron out for the plot
 fe<-sum_plot3%>%
-  filter(name=="Fe_mgL")
-
-# combine color and linetype in a new column 
-fe$comb <- paste(fe$color, fe$lty)
-
-# rename the column for the legend
-fe<-fe%>%
-  mutate(comb2=ifelse(comb=="SFe_mgL dashed","Soluble Fe", "Total Fe"))
-
-fe$comb2 <- factor(fe$comb2, levels = c("Total Fe", "Soluble Fe"))
+  filter(name=="Fe_mgL")%>%
+  mutate(comb2=ifelse(color=="SFe_mgL","Soluble Fe", "Total Fe"), #rename the column for the legend
+         comb2=factor(comb2, levels = c("Total Fe", "Soluble Fe")) # Reorder so totals is a solid line
+         )
 
 c<-fe%>%
-ggplot()+
-  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
- geom_point(aes(x=DateTime,
-                y=value,
-                colour = comb2))+ 
-  geom_line(aes(x=DateTime,
-                y=value,
-                colour = comb2,
-                linetype = comb2)) +
-  scale_alpha_manual(values = c(0,1))+
+  ggplot()+
+  geom_rect(aes(xmin = opened, xmax = closed, ymin=-Inf, ymax=Inf),
+            fill = "grey40", 
+            data = lines_rect, 
+            alpha = 0.2)+
+  geom_point(aes(x=DateTime, y=value, colour = comb2))+ 
+  geom_line(aes(x=DateTime, y=value, colour = comb2, linetype = comb2)) +
   geom_vline(aes(xintercept = 19184, color = comb2), lwd = 2, alpha = 0.3, show.legend = F)+
   geom_vline(aes(xintercept = 19178, color = comb2), lwd = 2, alpha = 0.3, show.legend = F, linetype = "11")+
-  #geom_vline(data=lines,aes(xintercept = Dates), show.legend = F)+
-  #scale_linetype_manual(values = c("solid","11"),
-                        #breaks = c("solid","dashed"),
-                        #labels = c("Total","Soluble"),)+
-  scale_color_manual(values = c("lightsalmon", "lightsalmon","lightsalmon"))+
-  facet_grid(rows = NULL,cols = vars(Year), scales = "free", switch = "y",
-             labeller = labeller(name = fac.labs))+
-  theme_bw()+
+  scale_color_manual(values = c("lightsalmon","lightsalmon"))+
+  facet_grid(cols = vars(Year), scales = "free", switch = "y")+
   labs(y="Fe (mg/L)",
        x="")+
-      #color  = "Guide name", 
-      #linetype = "Guide name")+
-  theme(#strip.placement = "outside", 
-        #strip.text.x = element_text(
-        #size = 12, face = "bold"
-        #),
-        strip.text.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size=9),
-        strip.background = element_blank(),
-        legend.position = c(0.18,0.66),
-        legend.title=element_blank(),
-        legend.background = element_blank(),
-        legend.key= element_blank(),
-        legend.spacing.y = unit(0, 'cm'),
-        legend.text=element_text(size=7),
-        plot.margin = unit(c(-0.9,0,0,0), "cm")
-        )+
+  theme(legend.position = c(0.18,0.66),
+      plot.margin = unit(c(-0.9,0,0,0), "cm")
+      )+
   guides(lty = guide_legend(byrow = TRUE,keyheight = 0.75, ncol=2),
-         color = guide_legend(byrow = TRUE,keyheight = 0.75),
-         alpha = "none")+
-   #facetted_pos_scales(y = scales)+
+         color = guide_legend(byrow = TRUE,keyheight = 0.75))+
   force_panelsizes(rows = unit(.75, "in"),
                    cols = unit(2.5, "in"))
 
 
 # Filter Mn out for the plot
 mn<-sum_plot3%>%
-  filter(name=="Mn_mgL")
-
-# combine color and linetype in a new column 
-mn$comb <- paste(mn$color, mn$lty)
-
-# rename the column for the legend
-mn<-mn%>%
-  mutate(comb2=ifelse(comb=="SMn_mgL dashed","Soluble Mn", "Total Mn"))
-
-# Reorder so totals is a solid line
-mn$comb2 <- factor(mn$comb2, levels = c("Total Mn", "Soluble Mn"))
+  filter(name=="Mn_mgL")%>%
+  mutate(comb2=ifelse(color=="SMn_mgL","Soluble Mn", "Total Mn"), #rename the column for the legend
+         comb2=factor(comb2, levels = c("Total Mn", "Soluble Mn")) # Reorder so totals is a solid line
+         )
 
 d<-mn%>%
   ggplot()+
   geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
-  geom_point(aes(x=DateTime,
-                y=value,
-                colour = comb2))+ 
-  geom_line(aes(x=DateTime,
-                y=value,
-                colour = comb2,
-                linetype = comb2)) +
-  scale_alpha_manual(values = c(0,1))+
+  geom_point(aes(x=DateTime, y=value, colour = comb2))+ 
+  geom_line(aes(x=DateTime, y=value, colour = comb2, linetype = comb2)) +
   geom_vline(aes(xintercept = 19184, color = comb2), lwd = 2, alpha = 0.3, show.legend = F)+
   geom_vline(aes(xintercept = 19170, color = comb2), lwd = 2, alpha = 0.3, show.legend = F, linetype = "11")+
-  #geom_vline(data=lines,aes(xintercept = Dates), show.legend = F)+
-  #scale_linetype_manual(values = c("solid","11"),
-                        #breaks = c("solid","dashed"),
-                        #labels = c("Total","Soluble"),)+
-  scale_color_manual(values = c("coral4","coral4","coral4"))+
-  facet_grid(rows = NULL,cols = vars(Year), scales = "free", switch = "y",
-             labeller = labeller(name = fac.labs))+
-  theme_bw()+
-  labs(y="Mn (mg/L)",
-       x="")+
-  theme(#strip.placement = "outside", 
-        #strip.text.x = element_text(
-        #size = 12, face = "bold"
-        #),
-        strip.text.x = element_blank(),
-        #axis.text.x = element_blank(),
-        #axis.ticks.x = element_blank(),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size=9),
-        strip.background = element_blank(),
-        legend.position = c(0.18,0.66),
-        legend.title=element_blank(),
-        legend.background = element_blank(),
-        legend.key= element_blank(),
-        legend.spacing.y = unit(0, 'cm'),
-        legend.text=element_text(size=7),
-        plot.margin = unit(c(-1.45,0,0,0), "cm")
-        )+
+  scale_color_manual(values = c("coral4","coral4"))+
+  facet_grid(cols = vars(Year), scales = "free", switch = "y")+
+  labs(y="Mn (mg/L)")+
+  theme(axis.text.x = element_text(vjust = 1), 
+      axis.ticks = element_line(colour = "black"), 
+      legend.position = c(0.18,0.66),
+      plot.margin = unit(c(-1.45,0,0,0), "cm")
+      )+
   guides(lty = guide_legend(byrow = TRUE,keyheight = 0.75, ncol = 2),
          color = guide_legend(byrow = TRUE,keyheight = 0.75),
-         alpha = "none")+
-   #facetted_pos_scales(y = scales)+
+         )+
   force_panelsizes(rows = unit(.75, "in"),
                    cols = unit(2.5, "in"))
 
-bio<-plot_grid(a, b,c,d, nrow = 4, align = "v")
+bio<-plot_grid(a, b, c, d, nrow = 4, align = "v")
 
 
  ggsave(file="./Figs/Abby_money_plot_biogeo_wLegend.jpeg",bio, dpi = 300, width = 6.5, height = 4, bg = "white")
@@ -492,7 +292,6 @@ bio<-plot_grid(a, b,c,d, nrow = 4, align = "v")
 Code chunk 6: Make line plot of nutrients, phytos, DOC, and CO2 (Figure BLOOM EFFECTS)
 
 ```{r bloom effects stats}
-
 #Combine all data
 sum_plot4 = chem_full%>%
   filter(Depth_m ==0.1)%>%
@@ -510,8 +309,7 @@ sum_plot4 = chem_full%>%
          color = name,
          name = ifelse(name%in%c("TotalConc_ugL","Bluegreens_ugL"),"Phyto",name), #Re-format to get cyanos on the same plot as totals
          name = ifelse(name%in%c("TP_ugL","PO4_ugL"),"Phosphorus",name), #Re-format to get solubles on the same plot as totals
-         name = ifelse(name%in%c("TN_ugL","NO3NO2_ugL","NH4_ugL"),"Nitrogen",name),
-         lty = ifelse(color%in%c("NO3NO2_ugL","NH4_ugL","PO4_ugL","Bluegreens_ugL"),"dashed","solid"))%>%
+         name = ifelse(name%in%c("TN_ugL","NO3NO2_ugL","NH4_ugL"),"Nitrogen",name))%>%
   mutate(name = factor(name, levels=c("Phosphorus","Nitrogen","Phyto","DOC_mgL","co2_umolL")),
          color = factor(color, levels=c("TP_ugL","PO4_ugL","TN_ugL","NH4_ugL","TotalConc_ugL","Bluegreens_ugL","DOC_mgL","co2_umolL"),
                         labels=c("TP","PO4","TN","NH4","Total phytoplankton", "Cyanobacteria", "DOC", "CO2"))) #Re-label colors
@@ -538,34 +336,17 @@ as.Date("2022-07-05")-as.Date("2022-06-27")
 as.Date("2022-07-11")-as.Date("2022-06-27")
 as.Date("2022-07-18")-as.Date("2022-06-27")
 as.numeric(maxes$max_date)
-
-# New facet label names for sum_plot
-fac.labs <- c("Phosphorus\n(µg/L)", "Nitrogen\n(µg/L)","Phytoplankton\n(µg/L)", "DOC\n(mg/L)", "CO2\n(µmol/L)", "NH4 (µg/L)")
-names(fac.labs) <- c("Phosphorus", "Nitrogen","Phyto", "DOC_mgL", "co2_umolL", "NH4_ugL")
-#Specify colors
-my_colors = c("black","black","magenta4","magenta4","darkgreen","darkgreen","#8E4412","blue")
-my_lines = c("solid","11","solid","11","solid","11","solid","solid")
-labels=c("TP",bquote(PO[4]),"TN",bquote(NH[4]),"Total phytoplankton","Cyanobacteria","DOC",bquote(CO[2]))
-names_orig=c("TP","PO4","TN","NH4","Total phytoplankton","Cyanobacteria","DOC","CO2")
-#names(my_lines)=c("TP",expression(PO[4]),"Total phytoplankton","Cyanobacteria","DOC","CO2","NH4","TN")
 ```
 
 ```{r plots bloom effect}
-
 #PLOT
 # plot each one individual to plots and then merge them at the end
 
 ph<-sum_plot4%>%
-  filter(name=="Phosphorus")
-
-# combine color and linetype in a new column 
-ph$comb <- paste(ph$color, ph$lty)
-
-# rename the column for the legend
-ph<-ph%>%
-  mutate(comb2=ifelse(comb=="TP solid","Total P", "Phosphate"))
-
-ph$comb2 <- factor(ph$comb2, levels = c("Total P", "Phosphate"))
+  filter(name=="Phosphorus")%>%
+  mutate(comb2=ifelse(color=="TP","Total P", "Phosphate"), #rename the column for the legend
+         comb2=factor(comb2, levels = c("Total P", "Phosphate")) # Reorder so totals is a solid line
+         )
 
 
 aa<-ph%>%
@@ -580,34 +361,14 @@ aa<-ph%>%
                 linetype = comb2)) +
   geom_vline(aes(xintercept = 19170, color = comb2), lwd = 2, alpha = 0.3, show.legend = F)+
   geom_vline(aes(xintercept = 19163, color = comb2), lwd = 2, alpha = 0.3, show.legend = F, linetype = "11")+
-  #scale_linetype_manual(values = my_lines,
-                        #labels = labels,
-                        #breaks = names_orig
-                        #)+
   scale_color_manual(values = c("black","black","black"))+
-  facet_grid(rows = NULL, cols = vars(Year), scales = "free", switch = "y",
-             labeller = labeller(name = fac.labs))+
-  theme_bw()+
-  labs(#y=expression(paste("Phosphorus \n ","(",mu, "g/L)")),
-       y=expression(atop("Phosphorus", paste("(",mu, "g/L)"))),
+  facet_grid(cols = vars(Year), scales = "free", switch = "y")+
+  labs(y=expression(atop("Phosphorus", paste("(",mu, "g/L)"))),
        x="")+
   theme(strip.placement = "outside", 
-        strip.text.x = element_text(
-        size = 12, face = "bold"
-        ),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size=9),
-        strip.background = element_blank(),
-        #legend.position = "none",
+        strip.text.x = element_text(size = 12, face = "bold"),
         legend.position = c(0.12,0.38),
         legend.justification = c(0,0),
-        legend.title=element_blank(),
-        legend.background = element_blank(),
-        legend.key= element_blank(),
-        legend.spacing.y = unit(0, 'cm'),
-        legend.text=element_text(size=7),
         plot.margin = unit(c(0.1,0,-1.2,0), "cm")
         )+
   guides(lty = guide_legend(byrow = TRUE,keyheight = 0.75, ncol = 2),
@@ -618,15 +379,10 @@ aa<-ph%>%
 
 # Plots Nitrogen
 ni<-sum_plot4%>%
-  filter(name=="Nitrogen")
-
-ni$comb <- paste(ni$color, ni$lty)
-
-# rename the column for the legend
-ni<-ni%>%
-  mutate(comb2=ifelse(comb=="TN solid","Total N", "Ammonium"))
-
-ni$comb2 <- factor(ni$comb2, levels = c("Total N", "Ammonium"))
+  filter(name=="Nitrogen")%>%
+  mutate(comb2=ifelse(color=="TN","Total N", "Ammonium"), #rename the column for the legend
+         comb2=factor(comb2, levels = c("Total N", "Ammonium")) # Reorder so totals is a solid line
+         )
 
 
 bb<-ni%>%
@@ -641,53 +397,24 @@ bb<-ni%>%
                 linetype = comb2)) +
   geom_vline(aes(xintercept = 19170, color = comb2), lwd = 2, alpha = 0.3, show.legend = F)+
   geom_vline(aes(xintercept = 19191, color = comb2), lwd = 2, alpha = 0.3, show.legend = F, linetype = "11")+
-  #scale_linetype_manual(values = my_lines,
-                        #labels = labels,
-                        #breaks = names_orig
-                        #)+
-  scale_color_manual(values = c("magenta4","magenta4","magenta4"))+
-  facet_grid(rows = NULL, cols = vars(Year), scales = "free", switch = "y",
-             labeller = labeller(name = fac.labs))+
-  theme_bw()+
-  labs(#y=expression(paste("Nitrogen \n","(",mu, "g/L)")),
-    y=expression(atop("Nitrogen", paste("(",mu, "g/L)"))),
-       x="")+
-  theme(#strip.placement = "outside", 
-        #strip.text.x = element_text(
-        #size = 12, face = "bold"
-        #),
-        strip.text.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size=9),
-        strip.background = element_blank(),
-        legend.position = c(0.12,0.38),
+  scale_color_manual(values = c("magenta4","magenta4"))+
+  facet_grid(cols = vars(Year), scales = "free", switch = "y")+
+  labs(y=expression(atop("Nitrogen", paste("(",mu, "g/L)"))))+
+  theme(legend.position = c(0.12,0.38),
         legend.justification = c(0,0),
-        legend.title=element_blank(),
-        legend.background = element_blank(),
-        legend.key= element_blank(),
-        legend.spacing.y = unit(0, 'cm'),
-        legend.text=element_text(size=7),
         plot.margin = unit(c(-1.2,0,-2.3,0), "cm")
         )+
   guides(lty = guide_legend(byrow = TRUE,keyheight = 0.75, ncol = 2),
-         color = guide_legend(byrow = TRUE,keyheight = 0.75),
-         alpha = "none")+
+         color = guide_legend(byrow = TRUE,keyheight = 0.75))+
   force_panelsizes(rows = unit(.75, "in"),
                    cols = unit(2.5, "in"))
 
 # Plots Phytoplankton
 pl<-sum_plot4%>%
-  filter(name=="Phyto")
-
-pl$comb <- paste(pl$color, pl$lty)
-
-# rename the column for the legend
-pl<-pl%>%
-  mutate(comb2=ifelse(comb=="Total phytoplankton solid","Total phytoplankton", "Cyanobacteria"))
-
-pl$comb2 <- factor(pl$comb2, levels = c("Total phytoplankton", "Cyanobacteria"))
+  filter(name=="Phyto")%>%
+  mutate(comb2=ifelse(color=="Total phytoplankton","Total phytoplankton", "Cyanobacteria"), #rename the column for the legend
+         comb2=factor(comb2, levels = c("Total phytoplankton", "Cyanobacteria")) # Reorder so totals is a solid line
+         )
 
 cc<-pl%>%
   ggplot()+
@@ -701,39 +428,15 @@ cc<-pl%>%
                 linetype = comb2)) +
   geom_vline(aes(xintercept = 19170, color = comb2), lwd = 2, alpha = 0.3, show.legend = F)+
   geom_vline(aes(xintercept = 19170, color = comb2), lwd = 2, alpha = 0.3, show.legend = F, linetype = "11")+
-  #scale_linetype_manual(values = my_lines,
-                        #labels = labels,
-                        #breaks = names_orig
-                        #)+
-  scale_color_manual(values = c("darkgreen","darkgreen","darkgreen"))+
-  facet_grid(rows = NULL, cols = vars(Year), scales = "free", switch = "y",
-             labeller = labeller(name = fac.labs))+
-  theme_bw()+
-  labs(#y=expression(paste("Nitrogen \n","(",mu, "g/L)")),
-    y=expression(atop("Phytoplankton", paste("(",mu, "g/L)"))),
-       x="")+
-  theme(#strip.placement = "outside", 
-        #strip.text.x = element_text(
-        #size = 12, face = "bold"
-        #),
-        strip.text.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size=9),
-        strip.background = element_blank(),
-        legend.position = c(0.12,0.38),
+  scale_color_manual(values = c("darkgreen","darkgreen"))+
+  facet_grid(cols = vars(Year), scales = "free", switch = "y")+
+  labs(y=expression(atop("Phytoplankton", paste("(",mu, "g/L)"))))+
+  theme(legend.position = c(0.12,0.38),
         legend.justification = c(0,0),
-        legend.title=element_blank(),
-        legend.background = element_blank(),
-        legend.key= element_blank(),
-        legend.spacing.y = unit(0, 'cm'),
-        legend.text=element_text(size=7),
         plot.margin = unit(c(-2,0,-2,0), "cm")
         )+
   guides(lty = guide_legend(byrow = TRUE,keyheight = 0.75, ncol = 2),
-         color = guide_legend(byrow = TRUE,keyheight = 0.75),
-         alpha = "none")+
+         color = guide_legend(byrow = TRUE,keyheight = 0.75))+
   force_panelsizes(rows = unit(.75, "in"),
                    cols = unit(2.5, "in"))
 
@@ -746,38 +449,12 @@ dd<-sum_plot4%>%
   geom_point(aes(color = name,x = DateTime, y = value))+
   geom_line(aes(x = DateTime, y = value, color = name))+
   geom_vline(aes(xintercept = 19178, color = "DOC"), lwd = 2, alpha = 0.3, show.legend = F)+
-  scale_linetype_manual(values = my_lines,
-                        labels = labels,
-                        breaks = names_orig
-                        )+
   scale_color_manual(values = c("#8E4412","#8E4412"))+
-  facet_grid(rows = NULL, cols = vars(Year), scales = "free", switch = "y",
-             labeller = labeller(name = fac.labs))+
-  theme_bw()+
-  labs(#y="DOC \n (mg/L)",
-    y=expression(atop("DOC", paste("(mg/L)"))),
-       x="")+
-  theme(#strip.placement = "outside", 
-        #strip.text.x = element_text(
-        #size = 12, face = "bold"
-        #),
-        strip.text.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size=9),
-        strip.background = element_blank(),
-        legend.position = "none",
-        legend.title=element_blank(),
-        legend.background = element_blank(),
-        legend.key= element_blank(),
-        legend.spacing.y = unit(0, 'cm'),
-        legend.text=element_text(size=7),
-        plot.margin = unit(c(-1.4,0,-0.4,0), "cm")
-        )+
+  facet_grid(cols = vars(Year), scales = "free", switch = "y")+
+  labs(y=expression(atop("DOC", paste("(mg/L)"))))+
+  theme(plot.margin = unit(c(-1.4,0,-0.4,0), "cm"))+
   guides(lty = guide_legend(byrow = TRUE,keyheight = 0.75, ncol = 2),
-         color = guide_legend(byrow = TRUE,keyheight = 0.75),
-         alpha = "none")+
+         color = guide_legend(byrow = TRUE,keyheight = 0.75))+
   force_panelsizes(rows = unit(.75, "in"),
                    cols = unit(2.5, "in"))
 
@@ -790,39 +467,12 @@ ee<-sum_plot4%>%
   geom_point(aes(color = name,x = DateTime, y = value))+
   geom_line(aes(x = DateTime, y = value, color = name))+
   geom_vline(aes(xintercept = 19184, color = "CO2"), lwd = 2, alpha = 0.3, show.legend = F)+
-  scale_linetype_manual(values = my_lines,
-                        labels = labels,
-                        breaks = names_orig
-                        )+
   scale_color_manual(values = c("blue","blue"))+
-  facet_grid(rows = NULL, cols = vars(Year), scales = "free", switch = "y",
-             labeller = labeller(name = fac.labs))+
-  theme_bw()+
-  labs(
-  y=expression(atop("CO"[2], paste("(", mu, "mol/L)"))),
-    #y=expression(atop("DOC", paste("(",mu, "g/L)"))),
-       x="")+
-  theme(#strip.placement = "outside", 
-        #strip.text.x = element_text(
-        #size = 12, face = "bold"
-        #),
-        strip.text.x = element_blank(),
-        #axis.text.x = element_blank(),
-        #axis.ticks.x = element_blank(),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size=9),
-        strip.background = element_blank(),
-        legend.position = "none",
-        legend.title=element_blank(),
-        legend.background = element_blank(),
-        legend.key= element_blank(),
-        legend.spacing.y = unit(0, 'cm'),
-        legend.text=element_text(size=7),
-        plot.margin = unit(c(-1.7,0,0,0), "cm")
-        )+
+  facet_grid(cols = vars(Year), scales = "free", switch = "y")+
+  labs(y=expression(atop("CO"[2], paste("(", mu, "mol/L)"))))+
+  theme(plot.margin = unit(c(-1.7,0,0,0), "cm"))+
   guides(lty = guide_legend(byrow = TRUE,keyheight = 0.75, ncol = 2),
-         color = guide_legend(byrow = TRUE,keyheight = 0.75),
-         alpha = "none")+
+         color = guide_legend(byrow = TRUE,keyheight = 0.75))+
   force_panelsizes(rows = unit(.75, "in"),
                    cols = unit(2.5, "in"))
 
@@ -847,8 +497,7 @@ tntp = chem_full%>%
          month(DateTime)<9)%>%
   mutate(Year = year(DateTime),
          color = name,
-         name = ifelse(name%in%c("TotalConc_ugL","Bluegreens_ugL"),"Phyto",name), #Re-format to get cyanos on the same plot as totals
-         lty = ifelse(color%in%c("Bluegreens_ugL"),"dashed","solid"))%>%
+         name = ifelse(name%in%c("TotalConc_ugL","Bluegreens_ugL"),"Phyto",name))%>% #Re-format to get cyanos on the same plot as totals
   mutate(name = factor(name, levels=c("TNTP","Phyto")),
          color = factor(color, levels=c("TotalConc_ugL","Bluegreens_ugL","TNTP"),
                         labels=c("Total phytoplankton", "Cyanobacteria","TNTP"))) #Re-label colors
@@ -873,12 +522,8 @@ maxes%>%
   mutate(max_date=as.Date(max_date, origin="1970-01-01"))
 as.numeric(maxes$max_date)
 
-# New facet label names for sum_plot
-fac.labs <- c("Phytoplankton\n(µg/L)", "TN:TP")
-names(fac.labs) <- c("Phyto", "TNTP")
 #Specify colors
 my_colors = c("darkgreen","darkgreen","black")
-my_lines = c("solid","11","solid")
 
 tntp%>%
   ggplot()+
@@ -886,22 +531,12 @@ tntp%>%
   geom_point(aes(y = value, x = DateTime,color = color))+
   geom_line(aes(y = value, lty=color,x = DateTime,color = color))+
   geom_vline(aes(xintercept = max_date, color = color), data = maxes, lwd = 2, alpha = 0.5, show.legend = F)+
-  #geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
-  scale_linetype_manual(values = c("solid","11","solid"),
-                        )+
-  scale_color_manual(values = my_colors, 
-                     )+
-  facet_grid(rows = vars(name), cols = vars(Year), scales = "free", switch = "y",
-             labeller = labeller(name = fac.labs))+
-  theme_bw()+
+  scale_linetype_manual(values = c("solid","11","solid"))+
+  scale_color_manual(values = my_colors)+
+  facet_grid(rows = vars(name), cols = vars(Year), scales = "free", switch = "y")+
   theme(strip.placement = "outside", 
-        strip.text.x = element_text(
-        size = 12, face = "bold"
-        ),
-        axis.title.x = element_blank(),
-        strip.background = element_blank(),
-        legend.position = "bottom",
-        legend.title = element_blank())+
+        strip.text.x = element_text(size = 12, face = "bold"),
+        legend.position = "bottom")+
   guides(color = guide_legend(byrow = TRUE,keyheight = 0.75))+
   ylab("")+
   force_panelsizes(rows = unit(.75, "in"),
@@ -916,7 +551,6 @@ after = tntp$value[tntp$DateTime=="2022-06-27"&tntp$name=="TNTP"]
 Code chunk 7: Make line plot of turbidity, euphotic zone, peak width, and peak depth (Figure PHYTOS)
 
 ```{r phytos stats}
-
 sum_plot5 = fluora_surface%>%
   full_join(light%>%mutate(DateTime = as.Date(Date))%>%select(-Date))%>%
   full_join(ctd%>%mutate(DateTime = as.Date(Date))%>%select(-Date,-Year,-Depth_m))%>%
@@ -931,10 +565,7 @@ sum_plot5 = fluora_surface%>%
          color = ifelse(name%in%c("CmaxDepth_TotalConc_ugL", "PeakWidth_TotalConc_m"),"TotalConc_ugL",
                         ifelse(name%in%c("PeakWidth_Bluegreens_m", "CmaxDepth_Bluegreens_ugL"),"Bluegreens_ugL",name)),
          name = ifelse(name%in%c("CmaxDepth_TotalConc_ugL", "CmaxDepth_Bluegreens_ugL"),"Cmax_depth",name),
-         name = ifelse(name%in%c("PeakWidth_TotalConc_m", "PeakWidth_Bluegreens_m"),"PeakWidth",name),
-         lty = ifelse(color == "Bluegreens_ugL","dashed","solid"))%>%
-  mutate(name = factor(name, levels=c("Turbidity_NTU", "Zeu", "Cmax_depth", "PeakWidth")),
-         color = factor(color, levels=c("Turbidity_NTU", "Zeu","TotalConc_ugL", "Bluegreens_ugL")))
+         name = ifelse(name%in%c("PeakWidth_TotalConc_m", "PeakWidth_Bluegreens_m"),"PeakWidth",name))
 
 #Calculate maxes
 maxes = sum_plot5%>%
@@ -957,10 +588,6 @@ sum_plot5%>%
   mutate(pct = (max[Year==2022]-max[Year==2021])/max[Year==2021]*100)
 
 # New facet label names for sum_plot
-fac.labs <- c("Turbidity\n(NTU)", "Euphotic zone\ndepth (m)", "C[max]\ndepth (m)", "Peak width\n(m)")
-names(fac.labs) <- c("Turbidity_NTU", "Zeu", "Cmax_depth", "PeakWidth")
-my_colors = c("grey20","goldenrod","darkgreen","turquoise")
-names(my_colors)=c("Turbidity_NTU", "Zeu","TotalConc_ugL", "Bluegreens_ugL")
 scales <- list(
   scale_y_continuous(),
   scale_y_reverse(limits = c(NA,0)),
@@ -970,7 +597,6 @@ scales <- list(
 ```
 
 ```{r phytos with legend plot}
-
 #PLOT
 # plot each one individual to plots and then merge them at the end
 
@@ -980,39 +606,14 @@ a3<-sum_plot5%>%
   geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
   geom_point(aes(color = name,x = DateTime, y = value))+
   geom_line(aes(x = DateTime, y = value, color = name))+
-  scale_alpha_manual(values = c(0,1))+
   geom_vline(aes(xintercept = 19178, color = "Turbidity_NTU"), lwd = 2, alpha = 0.3, show.legend = F)+
-  #geom_vline(data=lines,aes(xintercept = Dates), show.legend = F)+
-  scale_linetype_manual(values = c("solid","11"),
-                        breaks = c("solid","dashed"),
-                        labels = c("Total","Soluble"),)+
   scale_color_manual(values = c("black","black"))+
-  facet_grid(rows = NULL,cols = vars(Year), scales = "free", switch = "y",
-             labeller = labeller(name = fac.labs))+
-  theme_bw()+
-  labs(#y="Turbidity \n(NTU)",
-       y=expression(atop("Turbidity", paste("(NTU)"))),
-       x="")+
+  facet_grid(cols = vars(Year), scales = "free", switch = "y")+
+  labs(y=expression(atop("Turbidity", paste("(NTU)"))))+
   theme(strip.placement = "outside", 
-        strip.text.x = element_text(
-        size = 12, face = "bold"
-        ),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size=9),
-        strip.background = element_blank(),
-        legend.position = "none",
-        #legend.title=element_blank(),
-        #legend.background = element_blank(),
-        #legend.key= element_blank(),
-        #legend.spacing.y = unit(0, 'cm'),
-        #legend.text=element_text(size=7),
+        strip.text.x = element_text(size = 12, face = "bold"),
         plot.margin = unit(c(0.1,0,-0.68,0), "cm")
         )+
-  #guides(lty = "none",
-         #color = guide_legend(byrow = TRUE,keyheight = 0.75),
-         #alpha = "none")+
    facetted_pos_scales(y = scales)+
   force_panelsizes(rows = unit(.8, "in"),
                    cols = unit(2.5, "in"))
@@ -1025,39 +626,12 @@ b3<-sum_plot5%>%
   geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
   geom_point(aes(color = name,x = DateTime, y = value))+
   geom_line(aes(x = DateTime, y = value, color = name))+
-  scale_alpha_manual(values = c(0,1))+
   geom_vline(aes(xintercept = 19178, color = "Turbidity_NTU"), lwd = 2, alpha = 0.3, show.legend = F)+
-  #geom_vline(data=lines,aes(xintercept = Dates), show.legend = F)+
-  scale_linetype_manual(values = c("solid","11"),
-                        breaks = c("solid","dashed"),
-                        labels = c("Total","Soluble"),)+
   scale_color_manual(values = c("goldenrod","goldenrod"))+
-  facet_grid(rows = NULL,cols = vars(Year), scales = "free", switch = "y",
-             labeller = labeller(name = fac.labs))+
+  facet_grid(cols = vars(Year), scales = "free", switch = "y")+
   scale_y_reverse()+
-  theme_bw()+
-  labs(#y=expression(paste("Nitrogen \n","(",mu, "g/L)")),
-    #y="Euphotic zone \n depth (m)",
-    y=expression(atop("Euphotic zone", paste("depth (m)"))),
-       x="")+
-  theme(#strip.placement = "outside", 
-        #strip.text.x = element_text(
-        #size = 12, face = "bold"
-        #),
-        strip.text.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size=9),
-        strip.background = element_blank(),
-        legend.position = "none",
-        legend.title=element_blank(),
-        legend.background = element_blank(),
-        legend.key= element_blank(),
-        legend.spacing.y = unit(0, 'cm'),
-        legend.text=element_text(size=7),
-        plot.margin = unit(c(-1,0,-1.6,0), "cm")
-        )+
+  labs(y=expression(atop("Euphotic zone", paste("depth (m)"))))+
+  theme(plot.margin = unit(c(-1,0,-1.6,0), "cm"))+
   guides(lty = guide_legend(byrow = TRUE,keyheight = 0.75, ncol = 2),
          color = guide_legend(byrow = TRUE,keyheight = 0.75),
          alpha = "none")+
@@ -1066,15 +640,10 @@ b3<-sum_plot5%>%
 
 # Plots Phytoplankton Cmax
 cmax<-sum_plot5%>%
-  filter(name=="Cmax_depth")
-
-cmax$comb <- paste(cmax$color, cmax$lty)
-
-# rename the column for the legend
-cmax<-cmax%>%
-  mutate(comb2=ifelse(comb=="TotalConc_ugL solid","Total phytoplankton", "Cyanobacteria"))
-
-cmax$comb2 <- factor(cmax$comb2, levels = c("Total phytoplankton", "Cyanobacteria"))
+  filter(name=="Cmax_depth")%>%
+  mutate(comb2=ifelse(color=="TotalConc_ugL","Total phytoplankton", "Cyanobacteria"), #rename the column for the legend
+         comb2=factor(comb2, levels = c("Total phytoplankton", "Cyanobacteria")) # Reorder so totals is a solid line
+         )
 
 c3<-cmax%>%
   ggplot()+
@@ -1088,34 +657,11 @@ c3<-cmax%>%
                 linetype = comb2)) +
   geom_vline(aes(xintercept = 19163, color = comb2), lwd = 2, alpha = 0.3, show.legend = F)+
   geom_vline(aes(xintercept = 19178, color = comb2), lwd = 2, alpha = 0.3, show.legend = F, linetype = "11")+
-  #scale_linetype_manual(values = my_lines,
-                        #labels = labels,
-                        #breaks = names_orig
-                        #)+
   scale_color_manual(values = c("darkgreen","darkgreen"))+
-  facet_grid(rows = NULL, cols = vars(Year), scales = "free", switch = "y",
-             labeller = labeller(name = fac.labs))+
+  facet_grid(cols = vars(Year), scales = "free", switch = "y")+
   scale_y_reverse()+
-  theme_bw()+
-  labs(#y=expression(paste("Nitrogen \n","(",mu, "g/L)")),
-    y=expression(atop("C"["max"], paste("depth (m)"))),
-       x="")+
-  theme(#strip.placement = "outside", 
-        #strip.text.x = element_text(
-        #size = 12, face = "bold"
-        #),
-        strip.text.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size=9),
-        strip.background = element_blank(),
-        legend.position = c(0.20,0.66),
-        legend.title=element_blank(),
-        legend.background = element_blank(),
-        legend.key= element_blank(),
-        legend.spacing.y = unit(0, 'cm'),
-        legend.text=element_text(size=7),
+  labs(y=expression(atop("C"["max"], paste("depth (m)"))))+
+  theme(legend.position = c(0.20,0.66),
         plot.margin = unit(c(-1.8,0,-1.4,0), "cm")
         )+
   guides(lty = guide_legend(byrow = TRUE,keyheight = 0.75, ncol = 2),
@@ -1127,57 +673,22 @@ c3<-cmax%>%
 # Plots for peak width
 
 pkw<-sum_plot5%>%
-  filter(name=="PeakWidth")
-
-pkw$comb <- paste(pkw$color, pkw$lty)
-
-# rename the column for the legend
-pkw<-pkw%>%
-  mutate(comb2=ifelse(comb=="TotalConc_ugL solid","Total phytoplankton", "Cyanobacteria"))
-
-pkw$comb2 <- factor(pkw$comb2, levels = c("Total phytoplankton", "Cyanobacteria"))
-
+  filter(name=="PeakWidth")%>%
+  mutate(comb2=ifelse(color=="TotalConc_ugL","Total phytoplankton", "Cyanobacteria"), #rename the column for the legend
+         comb2=factor(comb2, levels = c("Total phytoplankton", "Cyanobacteria")) # Reorder so totals is a solid line
+         )
 
 d4<-pkw%>%
-    ggplot()+
+  ggplot()+
   geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
-  geom_point(aes(x=DateTime,
-                y=value,
-                colour = comb2))+ 
-  geom_line(aes(x=DateTime,
-                y=value,
-                colour = comb2,
-                linetype = comb2)) +
+  geom_point(aes(x=DateTime, y=value, colour = comb2))+ 
+  geom_line(aes(x=DateTime, y=value, colour = comb2, linetype = comb2)) +
   geom_vline(aes(xintercept = 19156, color = comb2), lwd = 2, alpha = 0.3, show.legend = F)+
   geom_vline(aes(xintercept = 19163, color = comb2), lwd = 2, alpha = 0.3, show.legend = F, linetype = "11")+
-  #scale_linetype_manual(values = my_lines,
-                        #labels = labels,
-                        #breaks = names_orig
-                        #)+
   scale_color_manual(values = c("darkgreen","darkgreen"))+
-  facet_grid(rows = NULL, cols = vars(Year), scales = "free", switch = "y",
-             labeller = labeller(name = fac.labs))+
-  #scale_y_reverse()+
-  theme_bw()+
-  labs(#y=expression(paste("Nitrogen \n","(",mu, "g/L)")),
-    y=expression(atop("Peak width", paste("(m)"))),
-       x="")+
-  theme(#strip.placement = "outside", 
-        #strip.text.x = element_text(
-        #size = 12, face = "bold"
-        #),
-        strip.text.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size=9),
-        strip.background = element_blank(),
-        legend.position = c(0.30,0.77),
-        legend.title=element_blank(),
-        legend.background = element_blank(),
-        legend.key= element_blank(),
-        legend.spacing.y = unit(0, 'cm'),
-        legend.text=element_text(size=7),
+  facet_grid(cols = vars(Year), scales = "free", switch = "y")+
+  labs(y=expression(atop("Peak width", paste("(m)"))))+
+  theme(legend.position = c(0.30,0.77),
         plot.margin = unit(c(-1.7,0,-0.4,0), "cm")
         )+
   guides(lty = guide_legend(byrow = TRUE,keyheight = 0.75, ncol = 2),
