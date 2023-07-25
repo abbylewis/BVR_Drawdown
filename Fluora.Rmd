@@ -1,141 +1,86 @@
 ---
-title: "Fluoro"
-author: "Abby Lewis"
-date: "Last updated: 2022-11-29 MEL"
+title: "Fluora"
+author: "Abby Lewis and Mary Lofton"
+date: "Last updated: 2023-07-25 ASL"
 output: html_document
 ---
 
+Load packages and FP data
 ```{r setup, include=FALSE}
-#clear environment
-rm(list=ls())
-
 #load packages and set options
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(lubridate)
-#library(colorRamps)
 library(RCurl)
 
-#Define drawdown lines
-lines = data.frame(Dates = as.Date(c("2022-06-28", "2022-05-19","2022-05-28", "2022-07-01")), desc = c("closed","opened", "decreasing", "stable"), type = c("close","open","open","close"), status = c("init","init","final","final"), Year = 2022)
-lines <- tibble(lines)
-
+fluora <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/272/7/001cb516ad3e8cbabe1fdcf6826a0a45")
 ```
 
-Load and wrangle FP data
+Select and export surface data
 ```{r}
-#Load data - 16JAN23 revising this so it reads in EDI publication for FP published on 13JAN22
+fluora_surface=fluora%>%
+  filter(Reservoir=="BVR",
+         Site==50,
+         Depth_m<1)%>%
+  mutate(DateTime = as.Date(DateTime))%>%
+  group_by(DateTime)%>%
+  mutate(min_depth = min(Depth_m))%>%
+  filter(Depth_m==min_depth)
 
-fluora <- read.csv("https://portal.edirepository.org/nis/dataviewer?packageid=edi.272.7&entityid=001cb516ad3e8cbabe1fdcf6826a0a45")
-
-#Select just the variables we are interested in
-flo_select = fluora%>%
-  select(Reservoir, Site, Depth_m, DateTime, GreenAlgae_ugL, Bluegreens_ugL, BrownAlgae_ugL, MixedAlgae_ugL, YellowSubstances_ugL, TotalConc_ugL)
-
-#Filter to BVR 2021 and 2022 and limit to 1 m for comparison to EXO
-flo_compare = flo_select%>%
-  filter(Reservoir == "BVR", Site == 50,
-         year(DateTime)%in% c(2021,2022))%>%
-  mutate(Date= as.Date(DateTime)) %>%
-  group_by(Date)%>%
-  slice(which.min(abs(as.numeric(Depth_m) - 1))) %>%
-  select(Date, TotalConc_ugL, Bluegreens_ugL)
-
-```
-
-Load EXO data for comparison to FP
-```{r}
-#read in EXO data
-sensor_raw <- read.csv("./Data/bvre-waterquality.csv")
-head(sensor_raw)
-colnames(sensor_raw)
-sensor = sensor_raw %>%
-  filter(year(TIMESTAMP) %in% c(2021:2022)) %>%
-  mutate(Date = as.Date(TIMESTAMP),
-         Chla_1 = as.numeric(Chla_1),
-         BGAPC_1 = as.numeric(BGAPC_1)) %>%
-  group_by(Date) %>%
-  summarize(median_Chla_ugL = median(Chla_1, na.rm = TRUE),
-            median_BGAPC_ugL = median(BGAPC_1, na.rm = TRUE))
-
-#Compare FP and EXO chl-a
-comp <- left_join(flo_compare, sensor, by = "Date") 
-comp$cyano_bloom_dates <- comp$Date
-comp$cyano_bloom_dates[c(1:24,29:38)] <- NA
-
-jpeg("./Figs/BVR_EXOChla_vs_FPTotal.jpeg", res = 300, width = 6, height = 4, units = "in")
-ggplot(data = comp, aes(x = median_Chla_ugL, y = TotalConc_ugL, label = cyano_bloom_dates))+
-  geom_point(size = 2)+
-  geom_text(hjust=0, vjust=0)+
-  theme_bw()
-dev.off()
-
-jpeg("./Figs/BVR_EXOBGAPC_vs_FPBluegreens.jpeg", res = 300, width = 6, height = 4, units = "in")
-ggplot(data = comp, aes(x = median_BGAPC_ugL, y = Bluegreens_ugL, label = cyano_bloom_dates))+
-  geom_point(size = 2)+
-  geom_text(hjust=0, vjust=0)+
-  xlim(0,4.2)+
-  theme_bw()
-dev.off()
-
+write.csv(fluora_surface,"Processed_data/Fluora_surface.csv", row.names = F)
 ```
 
 Calculate Cmax depth
 ```{r}
-#data wrangling to get dataframe ready to calculate metrics
-
-#figure out doy for pre, during, and post draw-down
-yday("2022-05-19")
-yday("2022-06-28")
-
-flo_metrics = flo_select%>%
+# Data wrangling to get dataframe ready to calculate metrics
+flo_metrics = fluora%>%
+  select(Reservoir, 
+         Site, Depth_m, 
+         DateTime, 
+         GreenAlgae_ugL, 
+         Bluegreens_ugL, 
+         BrownAlgae_ugL, 
+         MixedAlgae_ugL, 
+         YellowSubstances_ugL, 
+         TotalConc_ugL)%>%
   filter(Reservoir == "BVR", Site == 50,
          year(DateTime)%in% c(2021,2022))%>%
   mutate(Date= as.Date(DateTime)) 
 
-#how many days have we?
-length(unique(flo_metrics$Date))
-#still 38
+# Calculate Cmax depth for each group in a for loop
+
+# Prepare dataframe for Cmax depth
+Cmax <- data.frame(matrix(data=NA, ncol=6, nrow=43))
 datez <- unique(flo_metrics$Date)
 
-#calculate Cmax depth for each group
-#prepare final dataframe for Cmax depth
-Cmax <- matrix(data=NA, ncol=6, nrow=43)
-Cmax <- data.frame(Cmax)
-
-#extract and standardize cmax depth for each group
+# Extract and standardize cmax depth for each group
 for (i in 1:length(datez)){
-
-dat <- flo_metrics %>%
-  filter(Date == datez[i])
-dat <- dat[,c(11,5:8,10,3)]
-
-for (j in 2:6){
-  
-  if(all(dat[,j] == 0)){
-    Cmax[i,j] <- NA
-  } else {
-    max <- dat[which.max(dat[,j]),]
-    Cmax[i,j] <- max[1,7]
+  dat <- flo_metrics %>%
+    filter(Date == datez[i])
+  dat <- dat[,c(11,5:8,10,3)]
+  for (j in 2:6){
+    if(all(dat[,j] == 0)){
+      Cmax[i,j] <- NA
+    } else {
+      max <- dat[which.max(dat[,j]),]
+      Cmax[i,j] <- max[1,7]
+    }
   }
-
+  Cmax[i,1] <- as.character(dat$Date[1])
 }
 
-Cmax[i,1] <- as.character(dat$Date[1])
-
-}
-
-colnames(Cmax) <- c("Date","green","cyano","brown","crypto","total")
-
-#data wrangling to get data to Abby
+# Format data for export
 Cmax_final <- Cmax
 colnames(Cmax_final) <- c("Date","CmaxDepth_GreenAlgae_ugL","CmaxDepth_Bluegreens_ugL","CmaxDepth_BrownAlgae_ugL","CmaxDepth_MixedAlgae_ugL","CmaxDepth_TotalConc_ugL")
-write.csv(Cmax_final, file = "./Data/FP_CmaxDepth.csv",row.names = FALSE)
+# Export data
+write.csv(Cmax_final, file = "./Processed_data/FP_CmaxDepth.csv",row.names = FALSE)
+```
 
+Compare with PZ depth
+```{r}
 #read in light attenuation calculations and look @ Cmax relative to pz depth
-pz <- read_csv("./Data/attenuation_calc.csv") %>%
+pz <- read_csv("./Processed_data/attenuation_calc.csv") %>%
   mutate(Date = date(Date))
-#note that we only have pz for May-July of 2021 and 2022
 
 Cmax <- tibble(Cmax) %>%
   mutate(Date = date(Date))
@@ -151,42 +96,19 @@ cmpz <- left_join(Cmax, pz, by = "Date") %>%
          brown_rel_pz_0.1 = (Zeu_0.1-brown)/Zeu_0.1,
          crypto_rel_pz_0.1 = (Zeu_0.1-crypto)/Zeu_0.1,
          total_rel_pz_0.1 = (Zeu_0.1-total)/Zeu_0.1) %>%
-  select(-(green:r2))
-
-
-
-
-
+  select(-(green:r2))%>%
+  filter(!is.na(Zeu)) %>%
+  mutate(Year = year(Date)) %>%
+  gather(green_rel_pz:total_rel_pz_0.1, key = "spectral_group", value = "Cmax_depth_rel_pz") %>%
+  mutate(pz_calc = ifelse(grepl("0.1",spectral_group),"0.1%","1%"))
 
 #data wrangling to plot
 Cmax_plot <- Cmax %>%
   mutate(Year = year(Date)) %>%
   gather(green:total, key = "spectral_group", value = "Cmax_depth")
 
-cmpz_plot <- cmpz %>%
-  filter(!is.na(Zeu)) %>%
-  mutate(Year = year(Date)) %>%
-  gather(green_rel_pz:total_rel_pz_0.1, key = "spectral_group", value = "Cmax_depth_rel_pz") %>%
-  mutate(pz_calc = ifelse(grepl("0.1",spectral_group),"0.1%","1%"))
-
 cmpz_1 <- cmpz_plot %>% filter(pz_calc == "1%")
 cmpz_0.1 <- cmpz_plot %>% filter(pz_calc == "0.1%")
-
-#plot
-jpeg("./Figs/Cmax_depth.jpeg", res = 300, width = 6, height = 4, units = "in")
-ggplot(data = subset(Cmax_plot,Cmax_plot$spectral_group != "crypto"), aes(x = spectral_group, y = Cmax_depth, fill = as.factor(Year)))+
-  geom_boxplot()+
-  scale_y_reverse()+
-  theme_classic()+
-  xlab("Spectral group")+
-  ylab("Cmax depth (m)")+
-  labs(fill = "Year")+
-  annotate("text",
-           x = c(1, 2),
-           y = c(0, 0),
-           label = c("**", "**"),
-           family = "", fontface = 3, size=8)
-dev.off()
 
 #data wrangling to plot Zeu
 pz_plot <- pz %>%
@@ -195,24 +117,7 @@ pz_plot <- pz %>%
   select(-(I0:r2)) %>%
   gather(Zeu:Zeu_0.1, key = "perc_light", value = "pz_depth")
 
-jpeg("./Figs/pz.jpeg", res = 300, width = 6, height = 4, units = "in")
-ggplot(data = pz_plot, aes(x = perc_light, y = pz_depth, fill = as.factor(Year)))+
-  geom_boxplot()+
-  theme_bw()+
-  scale_y_reverse()+
-  ggtitle("this is ONLY May-July")+
-  xlab("")+
-  ylab("Photic zone depth (m)")+
-  labs(fill = "Year")+
-  annotate("text",
-           x = c(1, 2),
-           y = c(0, 0),
-           label = c("***", "***"),
-           family = "", fontface = 3, size=8)+
-  scale_x_discrete(labels=c("Zeu" = "1% light", "Zeu_0.1" = "0.1% light"))
-dev.off()
-
-jpeg("./Figs/Cmax_depth_pz_1.jpeg", res = 300, width = 6, height = 4, units = "in")
+jpeg("./Figs/SI_Cmax_depth_pz_1.jpeg", res = 300, width = 6, height = 4, units = "in")
 ggplot(data = subset(cmpz_1, cmpz_1$spectral_group != "crypto_rel_pz"), aes(x = spectral_group, y = Cmax_depth_rel_pz, fill = as.factor(Year)))+
   geom_boxplot()+
   geom_hline(yintercept = 0)+
@@ -226,7 +131,7 @@ ggplot(data = subset(cmpz_1, cmpz_1$spectral_group != "crypto_rel_pz"), aes(x = 
                               "brown_rel_pz" = "Brown algae", "total_rel_pz" = "Total phyto."))
 dev.off()
 
-jpeg("./Figs/Cmax_depth_pz_0.1.jpeg", res = 300, width = 6, height = 4, units = "in")
+jpeg("./Figs/SI_Cmax_depth_pz_0.1.jpeg", res = 300, width = 6, height = 4, units = "in")
 ggplot(data = subset(cmpz_0.1, cmpz_0.1$spectral_group != "crypto_rel_pz_0.1"), aes(x = spectral_group, y = Cmax_depth_rel_pz, fill = as.factor(Year)))+
   geom_boxplot()+
   geom_hline(yintercept = 0)+
@@ -240,296 +145,6 @@ ggplot(data = subset(cmpz_0.1, cmpz_0.1$spectral_group != "crypto_rel_pz_0.1"), 
   scale_x_discrete(labels=c("green_rel_pz_0.1" = "Green algae", "cyano_rel_pz_0.1" = "Cyanobacteria",
                               "brown_rel_pz_0.1" = "Brown algae", "total_rel_pz_0.1" = "Total phyto."))
 dev.off()
-
-#stats: 
-
-#Welch's t-test pz depth for 2021 vs. 2022 by percent light
-#1% light
-t_2021 <- pz_plot %>%
-  filter(Year == 2021 & perc_light == "Zeu") %>%
-  select(pz_depth)
-t_2022 <- pz_plot %>%
-  filter(Year == 2022 & perc_light == "Zeu") %>%
-  select(pz_depth)
-t.test(t_2021, t_2022)
-
-#0.1% light
-t_2021 <- pz_plot %>%
-  filter(Year == 2021 & perc_light == "Zeu_0.1") %>%
-  select(pz_depth)
-t_2022 <- pz_plot %>%
-  filter(Year == 2022 & perc_light == "Zeu_0.1") %>%
-  select(pz_depth)
-t.test(as.numeric(t_2021$pz_depth[2:7]), as.numeric(t_2022$pz_depth))
-
-
-#Welch's t-test unstandardized Cmax depth for 2021 vs. 2022 by spectral group
-
-#total phytos
-t_2021 <- Cmax_plot %>%
-  filter(Year == 2021 & spectral_group == "total") %>%
-  select(Cmax_depth)
-t_2022 <- Cmax_plot %>%
-  filter(Year == 2022 & spectral_group == "total") %>%
-  select(Cmax_depth)
-t.test(t_2021, t_2022)
-
-#brown algae
-b_2021 <- Cmax_plot %>%
-  filter(Year == 2021 & spectral_group == "brown") %>%
-  select(Cmax_depth)
-b_2022 <- Cmax_plot %>%
-  filter(Year == 2022 & spectral_group == "brown") %>%
-  select(Cmax_depth)
-t.test(b_2021, b_2022)
-
-#cyanobacteria
-c_2021 <- Cmax_plot %>%
-  filter(Year == 2021 & spectral_group == "cyano") %>%
-  select(Cmax_depth)
-c_2022 <- Cmax_plot %>%
-  filter(Year == 2022 & spectral_group == "cyano") %>%
-  select(Cmax_depth)
-t.test(c_2021, c_2022)
-
-#green algae
-g_2021 <- Cmax_plot %>%
-  filter(Year == 2021 & spectral_group == "green") %>%
-  select(Cmax_depth)
-g_2022 <- Cmax_plot %>%
-  filter(Year == 2022 & spectral_group == "green") %>%
-  select(Cmax_depth)
-t.test(g_2021, g_2022)
-
-#Welch's t-test standardized Cmax depth (pz = 1% light) for 2021 vs. 2022 by spectral group
-
-#total phytos
-t_2021 <- cmpz_1 %>%
-  filter(Year == 2021 & spectral_group == "total_rel_pz") %>%
-  select(Cmax_depth_rel_pz)
-t_2022 <- cmpz_1 %>%
-  filter(Year == 2022 & spectral_group == "total_rel_pz") %>%
-  select(Cmax_depth_rel_pz)
-t.test(t_2021, t_2022)
-
-#brown algae
-b_2021 <- cmpz_1 %>%
-  filter(Year == 2021 & spectral_group == "brown_rel_pz") %>%
-  select(Cmax_depth_rel_pz)
-b_2022 <- cmpz_1 %>%
-  filter(Year == 2022 & spectral_group == "brown_rel_pz") %>%
-  select(Cmax_depth_rel_pz)
-t.test(b_2021, b_2022)
-
-#cyanobacteria
-c_2021 <- cmpz_1 %>%
-  filter(Year == 2021 & spectral_group == "cyano_rel_pz") %>%
-  select(Cmax_depth_rel_pz)
-c_2022 <- cmpz_1 %>%
-  filter(Year == 2022 & spectral_group == "cyano_rel_pz") %>%
-  select(Cmax_depth_rel_pz)
-t.test(c_2021, c_2022)
-
-#green algae
-g_2021 <- cmpz_1 %>%
-  filter(Year == 2021 & spectral_group == "green_rel_pz") %>%
-  select(Cmax_depth_rel_pz)
-g_2022 <- cmpz_1 %>%
-  filter(Year == 2022 & spectral_group == "green_rel_pz") %>%
-  select(Cmax_depth_rel_pz)
-t.test(g_2021, g_2022)
-
-#Welch's t-test standardized Cmax depth (pz = 0.1% light) for 2021 vs. 2022 by spectral group
-
-#total phytos
-t_2021 <- cmpz_0.1 %>%
-  filter(Year == 2021 & spectral_group == "total_rel_pz_0.1") %>%
-  select(Cmax_depth_rel_pz)
-t_2022 <- cmpz_0.1 %>%
-  filter(Year == 2022 & spectral_group == "total_rel_pz_0.1") %>%
-  select(Cmax_depth_rel_pz)
-t.test(t_2021, t_2022)
-
-#brown algae
-b_2021 <- cmpz_0.1 %>%
-  filter(Year == 2021 & spectral_group == "brown_rel_pz_0.1") %>%
-  select(Cmax_depth_rel_pz)
-b_2022 <- cmpz_0.1 %>%
-  filter(Year == 2022 & spectral_group == "brown_rel_pz_0.1") %>%
-  select(Cmax_depth_rel_pz)
-t.test(b_2021, b_2022)
-
-#cyanobacteria
-c_2021 <- cmpz_0.1 %>%
-  filter(Year == 2021 & spectral_group == "cyano_rel_pz_0.1") %>%
-  select(Cmax_depth_rel_pz)
-c_2022 <- cmpz_0.1 %>%
-  filter(Year == 2022 & spectral_group == "cyano_rel_pz_0.1") %>%
-  select(Cmax_depth_rel_pz)
-t.test(c_2021, c_2022)
-
-#green algae
-g_2021 <- cmpz_0.1 %>%
-  filter(Year == 2021 & spectral_group == "green_rel_pz_0.1") %>%
-  select(Cmax_depth_rel_pz)
-g_2022 <- cmpz_0.1 %>%
-  filter(Year == 2022 & spectral_group == "green_rel_pz_0.1") %>%
-  select(Cmax_depth_rel_pz)
-t.test(g_2021, g_2022)
-
-```
-
-Calculate mean biomass
-```{r}
-mean_biom <- flo_metrics %>%
-  select(-YellowSubstances_ugL) %>%
-  rename(green = GreenAlgae_ugL,
-         brown = BrownAlgae_ugL,
-         cyano = Bluegreens_ugL,
-         crypto = MixedAlgae_ugL,
-         total = TotalConc_ugL) %>%
-  group_by(Date) %>%
-  summarize_at(vars(green:total), mean, na.rm = TRUE) %>%
-  mutate(Year = year(Date)) %>%
-  gather(green:total, key = "spectral_group", value = "Mean_biomass") %>%
-  mutate(DOY = yday(Date)) %>%
-  mutate(drawdown = ifelse(DOY <= 139, "pre",
-                           ifelse(DOY > 139 & DOY <= 179, "during",
-                                  ifelse(DOY > 179, "post","eek!")))) %>%
-  mutate(drawdown = factor(drawdown, levels = c("pre","during","post")))
-
-#plots for Res Group
-
-#compare 2021 vs 2022
-jpeg("./Figs/Mean_biomass.jpeg", res = 300, width = 6, height = 4, units = "in")
-ggplot(data = mean_biom, aes(x = spectral_group, y = Mean_biomass, fill = as.factor(Year)))+
-  geom_boxplot()+
-  theme_classic()+
-  xlab("Spectral group")+
-  ylab("Mean biomass (ug/L)")+
-  labs(fill = "Year")
-dev.off()
-
-#cmpare 2021 vs 2022 for pre, during, and post-drawdown
-
-# New facet label names for spectral groups
-sg.labs <- c("Brown algae","Cyanobacteria","Green algae","Total phyto.")
-names(sg.labs) <- c("brown","cyano","green","total")
-
-jpeg("./Figs/Mean_biomass_by_period.jpeg", res = 300, width = 8, height = 4, units = "in")
-ggplot(data = subset(mean_biom, mean_biom$spectral_group != "crypto"), aes(x = drawdown, y = Mean_biomass, fill = as.factor(Year)))+
-  geom_boxplot()+
-  facet_grid(cols = vars(spectral_group), labeller = labeller(spectral_group = sg.labs))+
-  theme_classic()+
-  xlab("Drawdown period")+
-  ylab("Mean biomass (ug/L)")+
-  labs(fill = "Year")
-dev.off()
-
-#cyano plot for WVWA
-jpeg("./Figs/cyanos_by_period_WVWA.jpeg", res = 300, width = 3, height = 3.5, units = "in")
-ggplot(data = subset(mean_biom, mean_biom$spectral_group == "cyano"), aes(x = drawdown, y = Mean_biomass, fill = as.factor(Year)))+
-  geom_boxplot()+
-  facet_grid(cols = vars(spectral_group), labeller = labeller(spectral_group = sg.labs))+
-  theme_classic()+
-  xlab("Drawdown period")+
-  ylab("Mean biomass (ug/L)")+
-  labs(fill = "Year")
-dev.off()
-
-#plot for WVWA
-jpeg("./Figs/Mean_biomass_WVWA.jpeg", res = 300, width = 5, height = 3.33, units = "in")
-ggplot(data = subset(mean_biom, mean_biom$spectral_group != "crypto"), aes(x = spectral_group, y = Mean_biomass, fill = as.factor(Year)))+
-  geom_boxplot()+
-  theme_classic()+
-  xlab("Spectral group")+
-  ylab("Mean biomass (ug/L)")+
-  scale_x_discrete(labels = c("Brown algae","Cyanobacteria","Green algae","Total phyto."))+
-  annotate("text",
-           x = c(2, 3, 4),
-           y = c(80, 80, 80),
-           label = c("*", "*", "*"),
-           family = "", fontface = 3, size=8)+
-  labs(fill = "Year")
-dev.off()
-
-#stats: 
-
-#Welch's t-test for 2021 vs. 2022 by spectral group
-
-#total phytos
-t_2021 <- mean_biom %>%
-  filter(Year == 2021 & spectral_group == "total") %>%
-  select(Mean_biomass)
-t_2022 <- mean_biom %>%
-  filter(Year == 2022 & spectral_group == "total") %>%
-  select(Mean_biomass)
-t.test(t_2021, t_2022)
-
-#brown algae
-b_2021 <- mean_biom %>%
-  filter(Year == 2021 & spectral_group == "brown") %>%
-  select(Mean_biomass)
-b_2022 <- mean_biom %>%
-  filter(Year == 2022 & spectral_group == "brown") %>%
-  select(Mean_biomass)
-t.test(b_2021, b_2022)
-
-#cyanobacteria
-c_2021 <- mean_biom %>%
-  filter(Year == 2021 & spectral_group == "cyano") %>%
-  select(Mean_biomass)
-c_2022 <- mean_biom %>%
-  filter(Year == 2022 & spectral_group == "cyano") %>%
-  select(Mean_biomass)
-t.test(c_2021, c_2022)
-
-#green algae
-g_2021 <- mean_biom %>%
-  filter(Year == 2021 & spectral_group == "green") %>%
-  select(Mean_biomass)
-g_2022 <- mean_biom %>%
-  filter(Year == 2022 & spectral_group == "green") %>%
-  select(Mean_biomass)
-t.test(g_2021, g_2022)
-
-#Welch's t-test for 2021 vs. 2022 and drawdown period by spectral group
-dp <- unique(mean_biom$drawdown)
-sg <- unique(mean_biom$spectral_group)
-
-final <- data.frame("Spectral_group" = NA,
-                    "drawdown" = NA,
-                    "Mean_biom_2021" = NA,
-                    "Mean_biom_2022" = NA,
-                    "p" = NA)
-
-for (s in sg){
-  curr_sg <- mean_biom %>% filter(spectral_group == s)
-  
-  for(d in dp){
-    curr_dp <- curr_sg %>% filter(drawdown == d)
-    
-  y1 <- curr_dp %>%
-  filter(Year == 2021) %>%
-  select(Mean_biomass)
-  
-  y2 <- curr_dp %>%
-  filter(Year == 2022) %>%
-  select(Mean_biomass)
-  
-  curr_t <- t.test(y1, y2)
-  
-  temp <- data.frame("Spectral_group" = s,
-                    "drawdown" = d,
-                    "Mean_biom_2021" = mean(y1$Mean_biomass, na.rm = TRUE),
-                    "Mean_biom_2022" = mean(y2$Mean_biomass, na.rm = TRUE),
-                    "p" = curr_t$p.value)
-  final <- rbind(final, temp)
-  }
-}
-
-sig <- final %>% filter(p < 0.05)
-
 ```
 
 Calculate peak width
@@ -546,151 +161,7 @@ pw <- flo_metrics[,c(3,5:8,10,11)] %>%
   select(-spectral_group, -Date) %>%
   rename(depth = Depth_m)
 
-### GND_curvefitting_THL
-### THLeach, leachth@miamioh.edu
-### July 6, 2016
-
-### adapted by Mary Lofton, melofton@vt.edu
-### July 27, 2019
-
-## fitting a generalized normal distribution to a chl profile 
-## and generate ChlF estimates from curve to be used for plotting
-
-#load necessary packages
-#pacman::p_load automatically installs and loads all required packages
-#install.packages('pacman')
-pacman::p_load(plyr, ggplot2, dplyr)
-
-#source dependent scripts
-source('./GND_fit_functions.R')
-
 data <- pw
-################################################
-# this ddply can be used if you have a file with multiple lakes (or dates if you change the "lake" 
-    # in line 16 to be the name of the column that identifies the each unique profile in your df.
-
-    output.df = ddply(data, "key", function (data){
-                    DCM.fit    = fit.GND(data$depth, data$chl)
-                    DCM.r2.fit = r2.fit(DCM.fit$par, data$depth, data$chl) 
-                    DCM.depth  = DCM.fit$par[3]
-                    DCM.std    = DCM.fit$par[4]
-                    Max.depth = max(data$depth)
-                    add.par    = DCM.fit$par[1]
-                    multi.par  = DCM.fit$par[2]
-                    DCM.shape = DCM.fit$par[5]
-                    chl.max.value = max(data$chl)
-                    DCM.depth.manual = data[which.max(data$chl),"depth"]
-                    # calculate DCM top depth, will set to 0 if this is above surface of lake
-                        DCM.breadth.top = c()
-                        if (DCM.depth - DCM.std < 0) {
-                                DCM.breadth.top = 0
-                        } else if (DCM.depth - DCM.std >= 0) {
-                            DCM.breadth.top = DCM.depth - DCM.std
-                        }
-                    # calculate the DCM bottom depth, will set to max. depth of profile if below
-                        DCM.breadth.bottom = c() # 
-                        if (DCM.depth + DCM.std > max(data$depth)) {
-                            DCM.breadth.bottom = max(data$depth)
-                        } else {
-                            DCM.breadth.bottom = DCM.depth + DCM.std
-                        }
-                    # calculate peak width
-                        peak.width = DCM.breadth.bottom - DCM.breadth.top
-                    # calculate standardized peak width
-                        stand.peak.width = peak.width/Max.depth
-                    # calculate avg. chl-a
-                        chl.avg = mean(data$chl, na.rm = TRUE)
-    data.frame(DCM.r2.fit = round(DCM.r2.fit, digits = 3), 
-            DCM.depth.curvefit  = round(DCM.depth, digits = 3), 
-            DCM.std    = round(DCM.std, digits = 3),
-            DCM.shape  = round(DCM.shape, digits =3),
-            add.par    = add.par, 
-            multi.par  = multi.par,
-            DCM.breadth.top = round(DCM.breadth.top, digits = 3),
-            DCM.breadth.bottom = round(DCM.breadth.bottom, digits = 3),
-            peak.width = round(peak.width, digits = 3),
-            stand.peak.width = round(stand.peak.width, digits = 3),
-            Max.depth = Max.depth,
-            chl.max.value = chl.max.value,
-            chl.avg = round(chl.avg, digits = 2),
-            DCM.depth.manual = DCM.depth.manual
-            )
-})
-
-write.csv(output.df, "./peak_width_results.csv",row.names = FALSE)
-    
-#####################################################################
-# Generate estimates of chl at each depth based upon the fitted curve and create a plot
-
-
-  ## Add a column, fill with NA values
-  data$chl_a_curve = NA
-
-        for(i in 1:nrow(output.df)){
-  
-                depths = data[data$key == output.df[i,]$key, ]$depth
-  
-                estim.values = output.df[i,]$add.par + output.df[i,]$multi.par * 
-                dpgnorm(depths, mean=output.df[i,]$DCM.depth.curvefit, sigma=output.df[i,]$DCM.std, p = output.df[i,]$DCM.shape)
-    
-                data[data$key == output.df[i,]$key, ]$chl_a_curve = estim.values  
-
-                # write title
-                titlename = as.character(output.df[i,]$key)
-                # create plot
-                pp0 = ggplot() +
-                    geom_line(data = data[data$key == output.df[i,]$key, ], aes(x = depth, y = chl), size = 0.75, color = "springgreen3")+
-                    geom_line(data = data[data$key == output.df[i,]$key, ], aes(x = depth, y = chl_a_curve), size = 0.5)+
-                    geom_point(data = output.df[i,], aes(x = DCM.depth.manual, y =chl.max.value), size = 2, color = "blue")+
-                    geom_segment(data = output.df[i,], aes(x = DCM.breadth.top, y = chl.max.value/3, xend = DCM.breadth.bottom, yend = chl.max.value/3, colour = "red"))+
-                    geom_point(data = output.df[i,], aes(x = DCM.breadth.top, y =chl.max.value/3), size = 2, color = "red")+
-                    geom_point(data = output.df[i,], aes(x = DCM.breadth.bottom, y =chl.max.value/3), size = 2, color = "red")+
-                    scale_y_continuous()+
-                    scale_x_reverse()+
-                    ggtitle(titlename)+
-                    guides(color=FALSE)+
-                    labs(x = "Depth (m)", y = "ChlF")+
-                    coord_flip()+ 
-                    theme_bw() 
-                
-                # filename - this will write to the plot example folder 
-                    filename = paste0("./Figs/peak_width_plots/",output.df[i,]$key, "_peak_width.png")
-                # write plot to file
-                    ppi = 300
-                    png(file = filename, width = 3*ppi, height = 3*ppi, res = ppi)
-                    print(pp0)
-                    dev.off()
-        }
-
-#plot
-pw2 <- output.df %>%
-  mutate(spectral_group = sapply(strsplit(output.df$key, split='_', fixed=TRUE),"[[",1),
-         Date = sapply(strsplit(output.df$key, split='_', fixed=TRUE),"[[",2)) %>%
-  mutate(Year = year(Date)) %>%
-  select(Year, Date, spectral_group, peak.width)
-
-jpeg("./Figs/Peak_width.jpeg", res = 300, width = 6, height = 4, units = "in")
-ggplot(data = pw2, aes(x = spectral_group, y = peak.width, fill = as.factor(Year)))+
-  geom_boxplot()+
-  theme_classic()+
-  xlab("Spectral group")+
-  ylab("Peak width (m)")+
-  labs(fill = "Year")
-dev.off()
-```
-Alternative method for peak width calculation
-```{r}
-#data wrangling
-pw <- flo_metrics[,c(3,5:8,10,11)] %>%
-  rename(green = GreenAlgae_ugL,
-         brown = BrownAlgae_ugL,
-         cyano = Bluegreens_ugL,
-         crypto = MixedAlgae_ugL,
-         total = TotalConc_ugL) %>%
-  gather(green:total, key = "spectral_group", value = "chl") %>%
-  mutate(key = paste(spectral_group, Date, sep = "_")) %>%
-  select(-spectral_group, -Date) %>%
-  rename(depth = Depth_m)
 
 #calculate depth distribution characteristics for each profile
 profiles <- unique(pw$key)
@@ -699,108 +170,68 @@ final <- matrix(NA,nrow = length(unique(pw$key)), ncol = 2)
 
 for (i in 1:length(profiles)){
 
-profile <- pw %>%
-    filter(key == profiles[i])
-
-final[i,1] <- profile$key[1]
-
-#peak width calculation
-  max_depth <- unlist(profile[which.max(profile$chl),"depth"])
-  conc_med <- mean(profile$chl, na.rm = TRUE)
+  profile <- pw %>%
+      filter(key == profiles[i])
   
-  peak.top.temp <- subset(profile, depth <= max_depth & chl <= conc_med)
-  if(nrow(peak.top.temp) == 0){
-    peak.top = min(profile$depth, na.rm = TRUE)
-  } else {
-    peak.top <- unlist(peak.top.temp[which.min(abs(peak.top.temp$depth - max_depth)),"depth"])
-  }
-
-  peak.bottom.temp <- subset(profile, depth >= max_depth & chl <= conc_med)
-  if(nrow(peak.bottom.temp) == 0){
-    peak.bottom = max(profile$depth, na.rm = TRUE)
-  } else {
-    peak.bottom <- unlist(peak.bottom.temp[which.min(abs(peak.bottom.temp$depth - max_depth)),"depth"])
+  final[i,1] <- profile$key[1]
+  
+  #peak width calculation
+    max_depth <- unlist(profile[which.max(profile$chl),"depth"])
+    conc_med <- mean(profile$chl, na.rm = TRUE)
+    
+    peak.top.temp <- subset(profile, depth <= max_depth & chl <= conc_med)
+    if(nrow(peak.top.temp) == 0){
+      peak.top = min(profile$depth, na.rm = TRUE)
+    } else {
+      peak.top <- unlist(peak.top.temp[which.min(abs(peak.top.temp$depth - max_depth)),"depth"])
     }
   
-
-  peak.width = abs(peak.top - peak.bottom)
-  final[i,2] <- peak.width
-  
-  plot.df = data.frame(peak.top = peak.top,
-                       peak.bottom = peak.bottom,
-                       conc_med = conc_med)
-  
-  #plot profile + peak width
-  plot_filename = paste0("./Figs/peak_width_plots_FWB/",profile$key[1],".jpeg")
-  # create plot
-                pp0 = ggplot() +
-                    geom_line(data = profile, aes(x = depth, y = chl), size = 0.75, color = "springgreen3")+
-                    geom_segment(data = plot.df, aes(x = peak.top, y = conc_med, xend = peak.bottom, yend = conc_med, colour = "red"))+
-                    scale_y_continuous()+
-                    scale_x_reverse()+
-                    ggtitle(profile$key[1])+
-                    guides(color=FALSE)+
-                    labs(x = "Depth (m)", y = "ChlF")+
-                    coord_flip()+ 
-                    theme_bw() 
-                
-                # write plot to file
-                    ppi = 300
-                    png(file = plot_filename, width = 3*ppi, height = 3*ppi, res = ppi)
-                    print(pp0)
-                    dev.off()
+    peak.bottom.temp <- subset(profile, depth >= max_depth & chl <= conc_med)
+    if(nrow(peak.bottom.temp) == 0){
+      peak.bottom = max(profile$depth, na.rm = TRUE)
+    } else {
+      peak.bottom <- unlist(peak.bottom.temp[which.min(abs(peak.bottom.temp$depth - max_depth)),"depth"])
+      }
+    
+    peak.width = abs(peak.top - peak.bottom)
+    final[i,2] <- peak.width
+    
+    plot.df = data.frame(peak.top = peak.top,
+                         peak.bottom = peak.bottom,
+                         conc_med = conc_med)
+    
+    #plot profile + peak width
+    plot_filename = paste0("./Figs/peak_width_plots_FWB/",profile$key[1],".jpeg")
+    # create plot
+                  pp0 = ggplot() +
+                      geom_line(data = profile, aes(x = depth, y = chl), size = 0.75, color = "springgreen3")+
+                      geom_segment(data = plot.df, aes(x = peak.top, y = conc_med, xend = peak.bottom, yend = conc_med, colour = "red"))+
+                      scale_y_continuous()+
+                      scale_x_reverse()+
+                      ggtitle(profile$key[1])+
+                      guides(color="none")+
+                      labs(x = "Depth (m)", y = "ChlF")+
+                      coord_flip()+ 
+                      theme_bw() 
+                  
+                  # write plot to file
+                      ppi = 300
+                      png(file = plot_filename, width = 3*ppi, height = 3*ppi, res = ppi)
+                      print(pp0)
+                      dev.off()
   
 }
-  
-  ## Add a column, fill with NA values
-  data$chl_a_curve = NA
 
-        for(i in 1:nrow(output.df)){
-  
-                depths = data[data$key == output.df[i,]$key, ]$depth
-  
-                estim.values = output.df[i,]$add.par + output.df[i,]$multi.par * 
-                dpgnorm(depths, mean=output.df[i,]$DCM.depth.curvefit, sigma=output.df[i,]$DCM.std, p = output.df[i,]$DCM.shape)
-    
-                data[data$key == output.df[i,]$key, ]$chl_a_curve = estim.values  
+final <- data.frame(final)
+colnames(final) <- c("key","peak.width")
 
-                # write title
-                titlename = as.character(output.df[i,]$key)
-                # create plot
-                pp0 = ggplot() +
-                    geom_line(data = data[data$key == output.df[i,]$key, ], aes(x = depth, y = chl), size = 0.75, color = "springgreen3")+
-                    geom_line(data = data[data$key == output.df[i,]$key, ], aes(x = depth, y = chl_a_curve), size = 0.5)+
-                    geom_point(data = output.df[i,], aes(x = DCM.depth.manual, y =chl.max.value), size = 2, color = "blue")+
-                    geom_segment(data = output.df[i,], aes(x = DCM.breadth.top, y = chl.max.value/3, xend = DCM.breadth.bottom, yend = chl.max.value/3, colour = "red"))+
-                    geom_point(data = output.df[i,], aes(x = DCM.breadth.top, y =chl.max.value/3), size = 2, color = "red")+
-                    geom_point(data = output.df[i,], aes(x = DCM.breadth.bottom, y =chl.max.value/3), size = 2, color = "red")+
-                    scale_y_continuous()+
-                    scale_x_reverse()+
-                    ggtitle(titlename)+
-                    guides(color=FALSE)+
-                    labs(x = "Depth (m)", y = "ChlF")+
-                    coord_flip()+ 
-                    theme_bw() 
-                
-                # filename - this will write to the plot example folder 
-                    filename = paste0("./Figs/peak_width_plots/",output.df[i,]$key, "_peak_width.png")
-                # write plot to file
-                    ppi = 300
-                    png(file = filename, width = 3*ppi, height = 3*ppi, res = ppi)
-                    print(pp0)
-                    dev.off()
-        }
-  
-  final <- data.frame(final)
-  colnames(final) <- c("key","peak.width")
-
-  #plot
 pw2 <- final %>%
   mutate(spectral_group = sapply(strsplit(final$key, split='_', fixed=TRUE),"[[",1),
          Date = sapply(strsplit(final$key, split='_', fixed=TRUE),"[[",2)) %>%
   mutate(Year = year(Date)) %>%
   select(Year, Date, spectral_group, peak.width) %>%
   mutate(peak.width = as.numeric(peak.width))
+
 pw2 <- tibble(pw2) %>%
   mutate(Date = as.Date(Date)) %>%
   pivot_wider(names_from = spectral_group, values_from = peak.width) %>%
@@ -809,44 +240,10 @@ pw2 <- tibble(pw2) %>%
          PeakWidth_BrownAlgae_m = brown,
          PeakWidth_MixedAlgae_m = crypto,
          PeakWidth_TotalConc_m = total)
-write.csv(pw2, file = "./Data/FP_PeakWidth.csv",row.names = FALSE)
 
-jpeg("./Figs/Peak_width.jpeg", res = 300, width = 6, height = 4, units = "in")
-ggplot(data = pw2, aes(x = spectral_group, y = peak.width, fill = as.factor(Year)))+
-  geom_boxplot()+
-  theme_classic()+
-  xlab("Spectral group")+
-  ylab("Peak width (m)")+
-  labs(fill = "Year")
-dev.off()
-
-maxes = pw2 %>%
-  group_by(spectral_group, Year)%>%
-  summarize(max_date = as.Date(Date[which.min(peak.width)]))%>%
-  filter(Year=="2022")
-
-jpeg("./Figs/Peak_width_timeseries.jpeg", res = 300, width = 6, height = 4, units = "in")
-
-  ggplot(data = pw2, aes(x = Date, y = peak.width, color = spectral_group))+
-  geom_point()+
-  geom_line()+
-  geom_vline(aes(xintercept = max_date, color = spectral_group), data = maxes, lwd = 2)+
-  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
-  scale_linetype_manual(values = c("solid","dashed"))+
-  scale_color_manual(values = c("#8E4416","pink","#00BED0","#2DB138","#202C39"))+
-  facet_grid(rows = vars(spectral_group), cols = vars(Year), scales = "free", switch = "y")+
-  theme_bw()+
-  theme(strip.placement = "outside", legend.position = "none",
-        strip.text.x = element_text(
-        size = 12, face = "bold"
-        ),
-        axis.title.x = element_blank(),
-        strip.background = element_blank(
-     ))+
-  ylab("")
-  dev.off()
-
+write.csv(pw2, file = "./Processed_data/FP_PeakWidth.csv",row.names = FALSE)
 ```
+
 Key numbers and stats for manuscript
 ```{r}
 # dominance of cyanobacteria during study period
@@ -875,134 +272,4 @@ dom <- flo_metrics %>%
 dom %>%
   count(dom_group)
 
-```
-
-ASL figures
-```{r}
-#Pivot to format for figures
-flo_all = flo_select%>%
-  filter(Reservoir == "BVR", Site == 50,
-         year(DateTime)%in% c(2021,2022))%>%
-  mutate(DateTime= as.Date(DateTime))%>%
-  pivot_longer(!c(Reservoir,Site,Depth_m,DateTime))%>%
-  group_by(DateTime, name)%>%
-  summarize(max = max(value),
-            depth = Depth_m[which.max(value)])%>%
-  mutate(Year = as.factor(year(DateTime)),
-         Date_22 = DateTime)
-year(flo_all$Date_22) <- 2022 #Making a date column where year is the same to standardize x-axes
-
-#Plot maximum concentration for each spectral group
-jpeg("./Figs/phyto_max_all.jpg",width = 6, height= 8, units = "in", res = 300)
-flo_all%>%
-  ggplot(aes(x = Date_22, y = max, color = Year))+
-  geom_line()+
-  ylab("Maximum concentration (ug/L)")+
-  facet_wrap(~name, scales = "free_y", nrow = 3)+
-  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
-  scale_linetype_manual(values = c("solid","dashed"))+
-  theme(axis.title.x = element_blank(),
-        legend.position = "bottom")
-dev.off()
-
-#Plot the depth of peak biomass for each spectral group
-jpeg("./Figs/phyto_depth_all.jpg",width = 6, height= 8, units = "in", res = 300)
-flo_all%>%
-  ggplot(aes(x = Date_22, y = depth, color = Year))+
-  geom_line()+
-  ylab("Depth of maximum concentration (m)")+
-  facet_wrap(~name, scales = "free_y",nrow=3)+
-  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
-  scale_linetype_manual(values = c("solid","dashed"))+
-  theme(axis.title.x = element_blank(),
-        legend.position = "bottom")
-dev.off()
-
-#Summarize the depth and concentration of peaks for bluegreens and totals to get bluegreens as a % of the total peak
-flo_sum = flo_select%>%
-  filter(Reservoir == "BVR", Site == 50)%>%
-  mutate(DateTime= as.Date(DateTime))%>%
-  group_by(DateTime)%>%
-  summarize(max_tot = max(TotalConc_ugL),
-            max_blue = max(Bluegreens_ugL),
-            max_green = max(GreenAlgae_ugL),
-            depth_blue = Depth_m[which.max(Bluegreens_ugL)],
-            depth_max = Depth_m[which.max(TotalConc_ugL)],
-            depth_green = Depth_m[which.max(GreenAlgae_ugL)],
-            blue_pct = Bluegreens_ugL[Depth_m == depth_max]/max_tot)%>%
-  mutate(Year = as.factor(year(DateTime)),
-         Date_22 = DateTime)
-year(flo_sum$Date_22) = 2022
-
-#Plot the depth of the bluegreen peak
-flo_sum%>%
-  filter(Year %in% c(2021,2022))%>%
-  ggplot(aes(x = Date_22))+
-  geom_line(aes(y = depth_blue, color = Year))+
-  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
-  scale_linetype_manual(values = c("solid","dashed"))+
-  ylab("Depth of max bluegreen conc (m)")+
-  theme(axis.title.x = element_blank())
-
-#Plot the magnitude of the bluegreen peak
-flo_sum%>%
-  filter(Year %in% c(2021,2022))%>%
-  ggplot(aes(x = Date_22))+
-  geom_line(aes(y = max_blue, color = Year))+
-  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
-  scale_linetype_manual(values = c("solid","dashed"))+
-  ylab("Max bluegreen conc (ugL)")+
-  theme(axis.title.x = element_blank())
-
-#Plot the magnitude of the total peak
-flo_sum%>%
-  filter(Year %in% c(2021,2022))%>%
-  ggplot(aes(x = Date_22))+
-  geom_line(aes(y = max_tot, color = Year))+
-  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
-  scale_linetype_manual(values = c("solid","dashed"))+
-  ylab("Maximum algal conc (ugL)")+
-  theme(axis.title.x = element_blank())
-
-#Plot the depth of the total peak
-flo_sum%>%
-  filter(Year %in% c(2021,2022))%>%
-  ggplot(aes(x = Date_22))+
-  geom_line(aes(y = depth_max, color = Year))+
-  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
-  scale_linetype_manual(values = c("solid","dashed"))+
-  ylab("Max phyto conc (ugL)")+
-  theme(axis.title.x = element_blank())
-
-#Plot the depth of the green algae peak
-flo_sum%>%
-  filter(Year %in% c(2021,2022))%>%
-  ggplot(aes(x = Date_22))+
-  geom_line(aes(y = depth_green, color = Year))+
-  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
-  scale_linetype_manual(values = c("solid","dashed"))+
-  ylab("Depth of max green algae conc (m)")+
-  theme(axis.title.x = element_blank())
-
-#Plot the magnitude of the green algae peak
-flo_sum%>%
-  filter(Year %in% c(2021,2022))%>%
-  ggplot(aes(x = Date_22))+
-  geom_line(aes(y = max_green, color = Year))+
-  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
-  scale_linetype_manual(values = c("solid","dashed"))+
-  ylab("Max green conc (ugL)")+
-  theme(axis.title.x = element_blank())
-
-#Plot the percent of the total peak that is made up of bluegreens
-jpeg("./Figs/phyto_blue_pct.jpg",width = 6, height= 4, units = "in", res = 300)
-flo_sum%>%
-  filter(Year %in% c(2021,2022))%>%
-  ggplot(aes(x = Date_22))+
-  geom_line(aes(y = blue_pct, color = Year))+
-  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
-  scale_linetype_manual(values = c("solid","dashed"))+
-  ylab("Contribution of bluegreens to max phyto peak")+
-  theme(axis.title.x = element_blank())
-dev.off()
 ```
