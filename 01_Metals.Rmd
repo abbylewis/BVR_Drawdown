@@ -5,16 +5,17 @@ date: "7/22/2022"
 output: html_document
 ---
 
+This file loads metals data from EDI and creates a summary output with only values from 0.1 m depth
+
+Step 1: Load packages
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(lubridate)
-library(akima)
-library(colorRamps)
-library(RCurl)
 ```
 
-BVR metals 0.1 m
+
+Step 2: Load, format, and export data
 ```{r}
 metals <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/455/7/e71d70cac1650610e6a3fbbf7928007f")%>%
   mutate(Date = as.Date(DateTime))
@@ -23,8 +24,6 @@ metals$Date_22 = metals$Date
 year(metals$Date_22)=2022
 year(metals$Date)[year(metals$Date)==22]<-2022
 metals$Year = as.factor(year(metals$Date))
-
-metals[metals$Date=="2022-05-09",]
 
 metals_surf = metals%>%
   filter(Reservoir == "BVR",

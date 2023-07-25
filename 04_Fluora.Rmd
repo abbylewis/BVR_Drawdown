@@ -5,7 +5,17 @@ date: "Last updated: 2023-07-25 ASL"
 output: html_document
 ---
 
-Load packages and FP data
+This file loads fluoroprobe data from EDI and creates a summary output dataframes and figures
+
+Step 1: Load packages and FP data
+Step 2: Select and export surface data
+Step 3: Calculate Cmax depth
+Step 4: Compare with PZ depth
+Step 5: Calculate peak width
+Step 6: Key numbers and stats for manuscript
+
+
+Step 1: Load packages and FP data
 ```{r setup, include=FALSE}
 #load packages and set options
 knitr::opts_chunk$set(echo = TRUE)
@@ -16,7 +26,8 @@ library(RCurl)
 fluora <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/272/7/001cb516ad3e8cbabe1fdcf6826a0a45")
 ```
 
-Select and export surface data
+
+Step 2: Select and export surface data
 ```{r}
 fluora_surface=fluora%>%
   filter(Reservoir=="BVR",
@@ -30,7 +41,8 @@ fluora_surface=fluora%>%
 write.csv(fluora_surface,"Processed_data/Fluora_surface.csv", row.names = F)
 ```
 
-Calculate Cmax depth
+
+Step 3: Calculate Cmax depth
 ```{r}
 # Data wrangling to get dataframe ready to calculate metrics
 flo_metrics = fluora%>%
@@ -76,7 +88,8 @@ colnames(Cmax_final) <- c("Date","CmaxDepth_GreenAlgae_ugL","CmaxDepth_Bluegreen
 write.csv(Cmax_final, file = "./Processed_data/FP_CmaxDepth.csv",row.names = FALSE)
 ```
 
-Compare with PZ depth
+
+Step 4: Compare with PZ depth
 ```{r}
 #read in light attenuation calculations and look @ Cmax relative to pz depth
 pz <- read_csv("./Processed_data/attenuation_calc.csv") %>%
@@ -147,7 +160,8 @@ ggplot(data = subset(cmpz_0.1, cmpz_0.1$spectral_group != "crypto_rel_pz_0.1"), 
 dev.off()
 ```
 
-Calculate peak width
+
+Step 5: Calculate peak width
 ```{r}
 #data wrangling
 pw <- flo_metrics[,c(3,5:8,10,11)] %>%
@@ -244,7 +258,8 @@ pw2 <- tibble(pw2) %>%
 write.csv(pw2, file = "./Processed_data/FP_PeakWidth.csv",row.names = FALSE)
 ```
 
-Key numbers and stats for manuscript
+
+Step 6: Key numbers and stats for manuscript
 ```{r}
 # dominance of cyanobacteria during study period
 dom <- flo_metrics %>%
@@ -271,5 +286,4 @@ dom <- flo_metrics %>%
 
 dom %>%
   count(dom_group)
-
 ```

@@ -5,11 +5,11 @@ date: "12/11/2019"
 output: html_document
 ---
 
-This file loads CTD data from EDI and generates four outputs: 
-1. a heatmap of dissolved oxygen
-2. a dataframe with CTD data from 0.1 m
-3. a dataframe with calculated light attenuation outputs
-4. two fish habitat figures (TDO3 and ZDO3)
+This file loads CTD data from EDI and generates five outputs: 
+1) a heatmap of dissolved oxygen
+2) a dataframe with CTD data from 0.1 m
+3) a dataframe with calculated light attenuation outputs
+4 & 5) two fish habitat figures (TDO3 and ZDO3)
 
 
 Step 1: Load data and packages
@@ -92,7 +92,8 @@ df.final = df.final_export%>%
   filter(max>5) #For use below
 ```
 
-Heatmap
+
+Step 3: Create DO heatmap
 ```{r}
 cat_long = read.csv("Data/BVR_longoutput_FLARE_2020_2021.csv")%>%
   filter(Sensor=="ThermistorTemp")
@@ -141,7 +142,7 @@ names = c("Dissolved Oxygen\n(mg/L)")
 Years = 2021:2022
 Sites = c(50)
 
-color_freya = c("#313695", "#4575b4", "#74add1","#abd9e9", "#e0f3f8", "#ffffbf", "#fee090","#fdae61", "#f46d43", "#d73027", "#a50026")
+custom_heatmap_palette = c("#313695", "#4575b4", "#74add1","#abd9e9", "#e0f3f8", "#ffffbf", "#fee090","#fdae61", "#f46d43", "#d73027", "#a50026")
 
 for(i in 1:length(vars)){
   var = vars[i]
@@ -184,7 +185,7 @@ for(i in 1:length(vars)){
     geom_raster(aes(x=x,fill = z, y=y))+
     scale_y_continuous(expand = c(0,0),limits = c(0, NA))+
     labs(x = "", y = "Height above sediments (m)")+
-    scale_fill_gradientn(colours = if(var%in%c("DO_mgL","DO_pSat","ORP_mV")){rev(color_freya)}else{color_freya}, na.value="white", name = names[i])+
+    scale_fill_gradientn(colours = if(var%in%c("DO_mgL","DO_pSat","ORP_mV")){rev(custom_heatmap_palette)}else{custom_heatmap_palette}, na.value="white", name = names[i])+
     geom_ribbon(data = sensor_depth, aes(x = Date, ymin= Reservoir_depth, ymax = max), fill = "white",color = "black",lwd=.2)+
     geom_point(data = bvr, aes(x = Date, y = max), shape = 25, fill = "black", color = "white", size  =2)+
     geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "black", data = lines_rect, alpha = 0.15)+
@@ -198,8 +199,7 @@ for(i in 1:length(vars)){
           panel.background = element_rect(fill = "white"),
           panel.grid.major = element_blank(),
           panel.grid.minor = element_blank())+
-    facet_grid(#rows= vars(Site),
-               cols = vars(Year),
+    facet_grid(cols = vars(Year),
                scales = "free",
                space = "free_y")
   print(p)
@@ -207,6 +207,8 @@ for(i in 1:length(vars)){
 }
 ```
 
+
+Step 4: Plot fish habitat suitability metrics
 ```{r}
 oxy = df.final_export%>%
   filter(DO_mgL<3)%>%
@@ -218,37 +220,44 @@ oxy = df.final_export%>%
   filter(year(Date)%in% c(2021,2022))
 year(oxy$Date_22)=2022
 
-jpeg("Figs/TDO3.jpg",res = 300, units = "in",width = 6, height = 4)
+lines_rect = data.frame(closed = as.Date("2022-06-28"), opened = as.Date("2022-05-19"), Year = 2022, year_class = "2022")
+
+jpeg("Figs/SI_TDO3.jpg",res = 300, units = "in",width = 6, height = 4)
 oxy%>%
   filter(Site==50,
          month(Date)>4,
          month(Date)<9)%>%
-  ggplot(aes(x = Date_22, y = tdo3, color = Year))+
-  geom_point()+
-  geom_line()+
+  ggplot()+
+  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),
+              fill = "grey40", data = lines_rect, alpha = 0.2)+
+  geom_point(aes(x = Date_22, y = tdo3))+
+  geom_line(aes(x = Date_22, y = tdo3, lty = Year))+
   ylab("Temperature at which DO > 3")+
-  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
   scale_linetype_manual(values = c("solid","dashed"))+
-  xlab("Date")#+facet_wrap(~Site)
+  theme_bw()+
+  theme(axis.title.x = element_blank())
 dev.off()
 
-jpeg("Figs/Depth_DO3.jpg",res = 300, units = "in",width = 6, height = 4)
+jpeg("Figs/SI_Depth_DO3.jpg",res = 300, units = "in",width = 6, height = 4)
 oxy%>%
   filter(Site==50,
          month(Date)>4,
          month(Date)<9)%>%
-  ggplot(aes(x = Date_22, y = Depth_m, color = Year))+
-  geom_point()+
-  geom_line()+
+  ggplot()+
+  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),
+              fill = "grey40", data = lines_rect, alpha = 0.2)+
+  geom_point(aes(x = Date_22, y = Depth_m))+
+  geom_line(aes(x = Date_22, y = Depth_m, lty = Year))+
   ylab("Depth at which DO > 3")+
-  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
   scale_linetype_manual(values = c("solid","dashed"))+
-  scale_y_reverse()+
-  xlab("Date")#+facet_wrap(~Site)
+  scale_y_reverse(lim = c(NA,0))+
+  theme_bw()+
+  theme(axis.title.x = element_blank())
 dev.off()
 ```
 
-Light attenuation/light extinction
+
+Step 5: Calculate light attenuation/light extinction
 ```{r}
 #Using the equation here
 #https://www.esf.edu/efb/schulz/Limnology/Light.html

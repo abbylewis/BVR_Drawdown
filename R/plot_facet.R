@@ -1,3 +1,25 @@
+#' plot_facet.R
+#' Written by Abby Lewis
+#' Created 25 July 2023
+#' 
+#' @title Create standardized, facet-like plots
+#' 
+#' @description This function is a convenience wrapper to generate standardized 
+#' facet-like plots for Figures 5-7 of the manuscript
+#'
+#' @param data the dataset to plot
+#' @param var_name the variable to plot
+#' @param xint_1 x intercept to mark with a line
+#' @param xint_2 second x intercept to mark with a line (dotted)
+#' @param color color to use in this facet
+#' @param ylab y label
+#' @param reverse reverse y axis (logical)
+#' @param legend include legend on plot (logical)
+#' @param ... other arguments passed to theme
+#'
+#' @return returns a plot of the target variable over time in 2021 and 2022
+#'
+
 plot_facet <- function(data, var_name, xint_1, xint_2 = NULL, color, ylab, reverse = F, legend = F, ...){
   plot = data %>%
     filter(name == var_name)%>%

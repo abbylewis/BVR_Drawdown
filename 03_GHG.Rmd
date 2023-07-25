@@ -1,0 +1,26 @@
+---
+title: "GHG data download and format"
+author: "Abby Lewis"
+date: "2023-07-25"
+output: html_document
+---
+
+This file loads greenhouse gas data from EDI and creates a summary output with only values from 0.1 m depth
+
+
+Step 1: Load packages
+```{r}
+library(tidyverse)
+ghg <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/551/7/38d72673295864956cccd6bbba99a1a3")
+
+export = ghg%>%
+  filter(Site==50,
+         Depth_m ==0.1,
+         Reservoir=="BVR")%>%
+  group_by(DateTime)%>%
+  summarize(CH4_umolL=mean(CH4_umolL, na.rm = T),
+            CO2_umolL=mean(CO2_umolL, na.rm = T))
+
+write.csv(export,"Processed_data/GHG at 0.1m.csv")
+```
+

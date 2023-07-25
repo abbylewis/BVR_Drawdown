@@ -1,3 +1,7 @@
+#' Code from R lake analyzer, modified by Abby Lewis to use density instead of temperature
+#' 
+#' 
+#' 
 #' @title Calculate depth of the thermocline from a temperature profile.
 #' 
 #' @description This function calculates the location of the thermocline from a temperature

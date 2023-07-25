@@ -1,0 +1,43 @@
+---
+title: "Chemistry data download and format"
+author: "Abby Lewis"
+date: "2023-07-25"
+output: html_document
+---
+
+This file loads chemistry data from EDI and creates a summary output with only values from 0.1 m depth
+
+Step 1: Load packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+```
+
+
+Step 2: Load, format, and export data
+```{r}
+dt1  <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/199/11/509f39850b6f95628d10889d66885b76")
+
+# Chemistry QAQC following conversation with CCC and HLW
+dt1 = dt1%>%
+  filter(hour(DateTime)>8,hour(DateTime)<17)%>%
+  mutate(DateTime=as.Date(DateTime))%>%
+  rename(PO4_ugL = SRP_ugL)%>%
+  mutate(PO4_ugL = ifelse(PO4_ugL>TP_ugL,NA,PO4_ugL),
+         TP_ugL = ifelse(Flag_TP_ugL%in%c(5,9)|TP_ugL>60,NA,TP_ugL),
+         TN_ugL = ifelse(Flag_TN_ugL%in%c(5,9),NA,TN_ugL))
+
+chem_full = dt1%>%
+  filter(Reservoir=="BVR",
+         Site==50,
+         year(DateTime)%in%c(2021,2022),
+         Depth_m == 0.1)
+# Add a "day of year" column with the year 2022 assigned
+chem_full$Date_22<-chem_full$DateTime
+chem_full$Year = year(chem_full$DateTime)
+year(chem_full$Date_22)<-2022
+
+write.csv(chem_full,"Processed_data/Chem at 0.1m.csv", row.names = F)
+```
+
