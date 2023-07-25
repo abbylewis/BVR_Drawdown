@@ -77,20 +77,6 @@ chem_full$Date_22<-chem_full$DateTime
 chem_full$Year = year(chem_full$DateTime)
 year(chem_full$Date_22)<-2022
 
-#Load data
-dt1  <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/272/7/001cb516ad3e8cbabe1fdcf6826a0a45")
-
-#Extract surface data
-fluora_surface=dt1%>%
-  filter(Reservoir=="BVR",
-         Site==50,
-         Depth_m<1)%>%
-  mutate(DateTime = as.Date(DateTime))%>%
-  group_by(DateTime)%>%
-  mutate(min_depth = min(Depth_m))%>%
-  filter(Depth_m==min_depth)%>%
-  filter(year(DateTime)%in%c(2021,2022))
-
 #From physical metrics script
 thermo_depth = read.csv("./Data/thermocline_depth.csv")%>%
   filter(year(Date)%in%c(2022,2021))
@@ -111,6 +97,9 @@ metals = read.csv("Processed_data/Metals at 0.1m.csv")%>%
   filter(year(Date)%in%c(2021,2022))
 
 #From fluora script
+fluora_surface <- read.csv("Processed_data/Fluora_surface.csv")%>%
+  filter(year(DateTime)%in%c(2021,2022))
+
 cmax_depth = read.csv("./Data/FP_CmaxDepth.csv")%>%
   filter(year(Date)%in%c(2021,2022))
 
@@ -123,25 +112,23 @@ Code chunk 3: Compile Stats for Figure 5
 ```{r bloom effects stats}
 #Combine all data
 figure_5_data = chem_full%>%
-  filter(Depth_m ==0.1)%>%
+  filter(Depth_m == 0.1)%>%
   select(DateTime, TP_ugL, TN_ugL,PO4_ugL,DOC_mgL,DIC_mgL,NO3NO2_ugL,NH4_ugL, NO3NO2_ugL)%>%
-  full_join(fluora_surface%>%
-              filter(year(DateTime)%in% c(2021,2022)))%>%
+  full_join(fluora_surface%>%mutate(DateTime = as.Date(DateTime)))%>%
   full_join(ghg%>%mutate(DateTime = as.Date(DateTime)))%>%
-  mutate(TNTP = TN_ugL/TP_ugL)%>%
   select(DateTime, TP_ugL, TN_ugL,PO4_ugL,DOC_mgL,TotalConc_ugL,NH4_ugL,co2_umolL,Bluegreens_ugL)%>%
-  pivot_longer(cols = c(TP_ugL, TN_ugL,PO4_ugL,DOC_mgL,TotalConc_ugL,co2_umolL,NH4_ugL,Bluegreens_ugL))%>% #pivot for facet wrap
+  pivot_longer(cols = c(TP_ugL, TN_ugL,PO4_ugL,DOC_mgL,TotalConc_ugL,co2_umolL,NH4_ugL,Bluegreens_ugL))%>% 
   filter(!is.na(value),
          month(DateTime)>4,
          month(DateTime)<9)%>%
   mutate(Year = year(DateTime),
          color = name,
-         name = ifelse(name%in%c("TotalConc_ugL","Bluegreens_ugL"),"Phyto",name), #Re-format to get cyanos on the same plot as totals
-         name = ifelse(name%in%c("TP_ugL","PO4_ugL"),"Phosphorus",name), #Re-format to get solubles on the same plot as totals
+         name = ifelse(name%in%c("TotalConc_ugL","Bluegreens_ugL"),"Phyto",name), 
+         name = ifelse(name%in%c("TP_ugL","PO4_ugL"),"Phosphorus",name), 
          name = ifelse(name%in%c("TN_ugL","NO3NO2_ugL","NH4_ugL"),"Nitrogen",name))%>%
   mutate(name = factor(name, levels=c("Phosphorus","Nitrogen","Phyto","DOC_mgL","co2_umolL")),
          color = factor(color, levels=c("TP_ugL","PO4_ugL","TN_ugL","NH4_ugL","TotalConc_ugL","Bluegreens_ugL","DOC_mgL","co2_umolL"),
-                        labels=c("Total P","Phosphate","Total N","Ammonium","Total phytoplankton", "Cyanobacteria", "DOC", "CO2"))) #Re-label colors
+                        labels=c("Total P","Phosphate","Total N","Ammonium","Total phytoplankton", "Cyanobacteria", "DOC", "CO2")))
 
 #Calculate maxes
 maxes = figure_5_data%>%
@@ -169,9 +156,8 @@ as.numeric(maxes$max_date)
 
 Code chunk 4: Make line plot of nutrients, phytos, DOC, and CO2 (Figure 5)
 ```{r plots bloom effect}
-#PLOT
 # Phosphorus
-aa <- plot_facet(data = figure_5_data, 
+p <- plot_facet(data = figure_5_data, 
                 var_name = "Phosphorus", 
                 xint_1 = 19170,
                 xint_2 = 19163,
@@ -185,7 +171,7 @@ aa <- plot_facet(data = figure_5_data,
                 legend.justification = c(0,0))
 
 # Nitrogen
-bb<-plot_facet(data = figure_5_data, 
+n <- plot_facet(data = figure_5_data, 
                 var_name = "Nitrogen", 
                 xint_1 = 19170,
                 xint_2 = 19191,
@@ -197,28 +183,28 @@ bb<-plot_facet(data = figure_5_data,
                 legend.justification = c(0,0))
 
 # Phytoplankton
-cc<-plot_facet(data = figure_5_data, 
-                var_name = "Phyto", 
-                xint_1 = 19170,
-                xint_2 = 19170,
-                color = c("darkgreen","darkgreen"),
-                ylab = expression(atop(NA, atop(textstyle("Phytoplankton"), 
-                                                textstyle(paste("(",mu, "g/L)"))))),
-                legend = T,
-                legend.position = c(0.12,0.38),
-                legend.justification = c(0,0))
+phyto <-plot_facet(data = figure_5_data, 
+                   var_name = "Phyto", 
+                   xint_1 = 19170,
+                   xint_2 = 19170,
+                   color = c("darkgreen","darkgreen"),
+                   ylab = expression(atop(NA, atop(textstyle("Phytoplankton"), 
+                                                   textstyle(paste("(",mu, "g/L)"))))),
+                   legend = T,
+                   legend.position = c(0.12,0.38),
+                   legend.justification = c(0,0))
 
 # DOC
-dd<-plot_facet(data = figure_5_data, 
-                var_name = "DOC_mgL", 
-                xint_1 = 19178,
-                color = "#8E4412",
-                ylab = expression(atop(NA, atop(textstyle("DOC"), 
-                                                textstyle(paste("(mg/L)")))))
-               )
+doc <- plot_facet(data = figure_5_data, 
+                  var_name = "DOC_mgL", 
+                  xint_1 = 19178,
+                  color = "#8E4412",
+                  ylab = expression(atop(NA, atop(textstyle("DOC"), 
+                                                  textstyle(paste("(mg/L)")))))
+                  )
 
 # CO2
-ee<-plot_facet(data = figure_5_data, 
+co2 <- plot_facet(data = figure_5_data, 
                 var_name = "co2_umolL", 
                 xint_1 = 19184,
                 color = "blue",
@@ -228,15 +214,16 @@ ee<-plot_facet(data = figure_5_data,
                 axis.ticks = element_line(colour = "black"),
                )
 
-bloom <- wrap_plots(aa,bb,cc,dd,ee, nrow=5)
+figure_5 <- wrap_plots(p, n, phyto, doc, co2, nrow=5)
 
-ggsave("./Figs/Abby_money_plot_doc_short_wlegend.jpeg",bloom, dpi = 300, width = 6, height = 5, bg = "white")
+ggsave("./Figs/Figure_5.jpeg", figure_5, dpi = 300, width = 6, height = 5, bg = "white")
 ```
 
 
 Code chunk 5: Compile stats for Figure 6
 ```{r phytos stats}
 figure_6_data = fluora_surface%>%
+  mutate(DateTime = as.Date(DateTime))%>%
   full_join(light%>%mutate(DateTime = as.Date(Date))%>%select(-Date))%>%
   full_join(ctd%>%mutate(DateTime = as.Date(Date))%>%select(-Date,-Year,-Depth_m))%>%
   full_join(cmax_depth%>%mutate(DateTime = as.Date(Date))%>%select(-Date))%>%
@@ -259,7 +246,7 @@ figure_6_data = fluora_surface%>%
                         levels = c("Zeu","TotalConc_ugL","Bluegreens_ugL","Turbidity_NTU"),
                         labels = c("Zeu","Total phytoplankton","Cyanobacteria","Turbidity_NTU"))
          )
-unique(figure_6_data$color)
+
 #Calculate maxes
 maxes = figure_6_data%>%
   group_by(name,color, Year)%>%
@@ -285,52 +272,52 @@ Code chunk 6: Make line plot of turbidity, euphotic zone, peak width, and peak d
 ```{r phytos with legend plot}
 #PLOT
 # plot each one individual to plots and then merge them at the end
-a3 <- plot_facet(data = figure_6_data, 
-                var_name = "Turbidity_NTU", 
-                xint_1 = 19178,
-                color = "black",
-                ylab = expression(atop(NA, atop(textstyle("Turbidity"), 
-                                                textstyle("(NTU)")))),
-                strip.placement = "outside", 
-                strip.text.x = element_text(size = 12, face = "bold", vjust = 2))
+turb <- plot_facet(data = figure_6_data, 
+                   var_name = "Turbidity_NTU", 
+                   xint_1 = 19178,
+                   color = "black",
+                   ylab = expression(atop(NA, atop(textstyle("Turbidity"), 
+                                                   textstyle("(NTU)")))),
+                   strip.placement = "outside", 
+                   strip.text.x = element_text(size = 12, face = "bold", vjust = 2))
 
 # Plots Euphotic Zone
-b3 <- plot_facet(data = figure_6_data, 
-                var_name = "Zeu", 
-                xint_1 = 19178,
-                color = "goldenrod",
-                reverse = T,
-                ylab = expression(atop(NA, atop(textstyle("Euphotic zone"), 
-                                                textstyle("depth (m)")))))
+zeu <- plot_facet(data = figure_6_data, 
+                  var_name = "Zeu", 
+                  xint_1 = 19178,
+                  color = "goldenrod",
+                  reverse = T,
+                  ylab = expression(atop(NA, atop(textstyle("Euphotic zone"), 
+                                                  textstyle("depth (m)")))))
 
 # Cmax
-c3 <- plot_facet(data = figure_6_data, 
-                var_name = "Cmax_depth", 
-                xint_1 = 19163,
-                xint_2 = 19178,
-                reverse = T,
-                color = c("darkgreen","darkgreen"),
-                ylab = expression(atop(NA, atop(textstyle("C"["max"]), 
-                                                textstyle("depth (m)")))),
-                legend = T,
-                legend.position = c(0.20,0.66))
+cmax <- plot_facet(data = figure_6_data, 
+                   var_name = "Cmax_depth", 
+                   xint_1 = 19163,
+                   xint_2 = 19178,
+                   reverse = T,
+                   color = c("darkgreen","darkgreen"),
+                   ylab = expression(atop(NA, atop(textstyle("C"["max"]), 
+                                                   textstyle("depth (m)")))),
+                   legend = T,
+                   legend.position = c(0.20,0.66))
 
 # Peak width
-d3 <- plot_facet(data = figure_6_data, 
-                var_name = "PeakWidth", 
-                xint_1 = 19156,
-                xint_2 = 19163,
-                color = c("darkgreen","darkgreen"),
-                ylab = expression(atop(NA, atop(textstyle("Peak width"), 
-                                                textstyle("(m)")))),
-                legend = T,
-                legend.position = c(0.30,0.77),
-                axis.text.x = element_text(vjust = -1), 
-                axis.ticks = element_line(colour = "black"))
+width <- plot_facet(data = figure_6_data, 
+                    var_name = "PeakWidth", 
+                    xint_1 = 19156,
+                    xint_2 = 19163,
+                    color = c("darkgreen","darkgreen"),
+                    ylab = expression(atop(NA, atop(textstyle("Peak width"), 
+                                                    textstyle("(m)")))),
+                    legend = T,
+                    legend.position = c(0.30,0.77),
+                    axis.text.x = element_text(vjust = -1), 
+                    axis.ticks = element_line(colour = "black"))
 
-phytos<-wrap_plots(a3,b3,c3,d3,nrow=4)
+figure_6 <- wrap_plots(turb, zeu, cmax, width, nrow=4)
 
-ggsave("./Figs/Abby_money_plot_phytos_wlegend.jpeg",phytos, dpi = 300, width = 6, height = 4, bg = "white")
+ggsave("./Figs/Figure_6.jpeg", figure_6, dpi = 300, width = 6, height = 4, bg = "white")
 ```
 
 
@@ -396,46 +383,46 @@ figure_7_data%>%
 
 Code chunk 8: Make line plot of metals data, DO, and thermocline depth (Figure 7)
 ```{r Plot for oxygen Figure}
-a <- plot_facet(data = figure_7_data, 
-                var_name = "thermo", 
-                xint_1 = 19177, 
-                color = "darkblue",
-                ylab = "Thermocline \ndepth (m)",
-                reverse = T,
-                strip.placement = "outside", 
-                strip.text.x = element_text(size = 12, face = "bold", vjust = 2))
+thermo <- plot_facet(data = figure_7_data, 
+                     var_name = "thermo", 
+                     xint_1 = 19177, 
+                     color = "darkblue",
+                     ylab = "Thermocline \ndepth (m)",
+                     reverse = T,
+                     strip.placement = "outside", 
+                     strip.text.x = element_text(size = 12, face = "bold", vjust = 2))
 
-b <- plot_facet(data = figure_7_data, 
-                var_name = "DOsat_percent", 
-                xint_1 = 19184,
-                color = "cyan4",
-                ylab = "Surface DO\n(% saturation)")
+do_sat <- plot_facet(data = figure_7_data, 
+                     var_name = "DOsat_percent", 
+                     xint_1 = 19184,
+                     color = "cyan4",
+                     ylab = "Surface DO\n(% saturation)")
 
 # Iron
-c <- plot_facet(data = figure_7_data, 
-                var_name = "Fe_mgL", 
-                xint_1 = 19184,
-                xint_2 = 19178,
-                color = c("lightsalmon","lightsalmon"),
-                ylab = "Fe (mg/L)",
-                legend = T,
-                legend.position = c(0.18,0.66))
+fe <- plot_facet(data = figure_7_data, 
+                 var_name = "Fe_mgL", 
+                 xint_1 = 19184,
+                 xint_2 = 19178,
+                 color = c("lightsalmon","lightsalmon"),
+                 ylab = "Fe (mg/L)",
+                 legend = T,
+                 legend.position = c(0.18,0.66))
 
 # Mn
-d <- plot_facet(data = figure_7_data, 
-                var_name = "Mn_mgL", 
-                xint_1 = 19184,
-                xint_2 = 19170,
-                color = c("coral4","coral4"),
-                ylab = "Mn (mg/L)",
-                legend = T,
-                axis.text.x = element_text(vjust = -1), 
-                axis.ticks = element_line(colour = "black"), 
-                legend.position = c(0.18,0.66))
+mn <- plot_facet(data = figure_7_data, 
+                 var_name = "Mn_mgL", 
+                 xint_1 = 19184,
+                 xint_2 = 19170,
+                 color = c("coral4","coral4"),
+                 ylab = "Mn (mg/L)",
+                 legend = T,
+                 axis.text.x = element_text(vjust = -1), 
+                 axis.ticks = element_line(colour = "black"), 
+                 legend.position = c(0.18,0.66))
 
-bio <- wrap_plots(a,b,c,d, nrow=4)
+figure_7 <- wrap_plots(thermo, do_sat, fe, mn, nrow=4)
 
-ggsave(file="./Figs/Abby_money_plot_biogeo_wLegend.jpeg",bio, dpi = 300, width = 6, height = 4, bg = "white")
+ggsave(file="./Figs/Figure_7.jpeg",figure_7, dpi = 300, width = 6, height = 4, bg = "white")
  
 ```
 
@@ -446,8 +433,7 @@ Code chunk 9: Make line plot of TN:TP ratio for SI
 tntp = chem_full%>%
   filter(Depth_m ==0.1)%>%
   select(DateTime, TP_ugL, TN_ugL)%>%
-  full_join(fluora_surface%>%
-              filter(year(DateTime)%in% c(2021,2022)))%>%
+  full_join(fluora_surface%>%mutate(DateTime = as.Date(DateTime)))%>%
   mutate(TNTP = TN_ugL/TP_ugL)%>%
   select(DateTime, TNTP, TotalConc_ugL, Bluegreens_ugL)%>%
   pivot_longer(cols = c(TNTP, TotalConc_ugL, Bluegreens_ugL))%>% #pivot for facet wrap
@@ -500,7 +486,7 @@ tntp%>%
   ylab("")+
   force_panelsizes(rows = unit(.75, "in"),
                    cols = unit(2.5, "in"))
-ggsave("./Figs/TNTP.jpeg", dpi = 300, width = 6.5, height = 3)
+ggsave("./Figs/SI_TNTP.jpeg", dpi = 300, width = 6.5, height = 3)
 
 before = tntp$value[tntp$DateTime=="2022-05-23"&tntp$name=="TNTP"]
 after = tntp$value[tntp$DateTime=="2022-06-27"&tntp$name=="TNTP"]
