@@ -13,17 +13,17 @@ Carbon dioxide, drawdown, dissolved oxygen, high-frequency sensors, nitrogen, ph
 ## Data availability
 
 * Data for this study published in the Environmental Data Initative data portal. Data analysis code directly pulls from these sources: 
-    * [Water chemistry]([https://portal.edirepository.org/nis/mapbrowse?packageid=edi.199.11])
-    * [Greenhouse gasses](https://portal.edirepository.org/nis/mapbrowse?packageid=edi.551.7])
-    * [CTD]([https://portal.edirepository.org/nis/mapbrowse?packageid=edi.200.12])
-    * [YSI oxygen sensor]([https://portal.edirepository.org/nis/mapbrowse?packageid=edi.198.11])
-    * [Phytoplankton spectral groups]([https://portal.edirepository.org/nis/mapbrowse?packageid=edi.272.7])
-    * [In-situ sensors]([https://portal.edirepository.org/nis/mapbrowse?packageid=edi.725.3])
-    * [Meteorology]([https://portal.edirepository.org/nis/mapbrowse?packageid=edi.389.7])
-    * [Metals]([https://portal.edirepository.org/nis/mapbrowse?packageid=edi.455.7])
+    * [Water chemistry](https://portal.edirepository.org/nis/mapbrowse?packageid=edi.199.11)
+    * [Greenhouse gasses](https://portal.edirepository.org/nis/mapbrowse?packageid=edi.551.7)
+    * [CTD](https://portal.edirepository.org/nis/mapbrowse?packageid=edi.200.12)
+    * [YSI oxygen sensor](https://portal.edirepository.org/nis/mapbrowse?packageid=edi.198.11)
+    * [Phytoplankton spectral groups](https://portal.edirepository.org/nis/mapbrowse?packageid=edi.272.7)
+    * [In-situ sensors](https://portal.edirepository.org/nis/mapbrowse?packageid=edi.725.3)
+    * [Meteorology](https://portal.edirepository.org/nis/mapbrowse?packageid=edi.389.7)
+    * [Metals](https://portal.edirepository.org/nis/mapbrowse?packageid=edi.455.7)
 
 * Additional auxilary data are presented in ./External data:
-    * NID_YearCompleted_SurfaceArea_State.csv: National Inventory of Dams Database (available [here]([https://nid.sec.usace.army.mil/#/]))
+    * NID_YearCompleted_SurfaceArea_State.csv: National Inventory of Dams Database (available [here](https://nid.sec.usace.army.mil/#/))
 
 ## Repo content information
 
