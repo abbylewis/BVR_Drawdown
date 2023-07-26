@@ -14,7 +14,7 @@ Carbon dioxide, drawdown, dissolved oxygen, high-frequency sensors, nitrogen, ph
 
 * Data for this study published in the Environmental Data Initative data portal. Data analysis code directly pulls from these sources: 
     * [Water chemistry](https://portal.edirepository.org/nis/mapbrowse?packageid=edi.199.11)
-    * [Greenhouse gasses](https://portal.edirepository.org/nis/mapbrowse?packageid=edi.551.7)
+    * [Greenhouse gases](https://portal.edirepository.org/nis/mapbrowse?packageid=edi.551.7)
     * [CTD](https://portal.edirepository.org/nis/mapbrowse?packageid=edi.200.12)
     * [YSI oxygen sensor](https://portal.edirepository.org/nis/mapbrowse?packageid=edi.198.11)
     * [Phytoplankton spectral groups](https://portal.edirepository.org/nis/mapbrowse?packageid=edi.272.7)
