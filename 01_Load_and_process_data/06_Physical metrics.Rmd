@@ -5,6 +5,8 @@ date: "2022-08-30"
 output: html_document
 ---
 
+This file uses sensor data to create lake physics plots
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
@@ -26,8 +28,6 @@ lines_rect = lines%>%
   select(-type)%>%
   pivot_wider(names_from = desc, values_from = Dates)
 ```
-
-This file uses sensor data to create lake physics plots
 
 Figure PHYSICS- water column measures (schmidt, buoyancy freq)
 ```{r}
@@ -258,6 +258,7 @@ schmidt_df%>%
 
 Figure PHYSICS - air temp/wind/etc
 ```{r}
+options(timeout=3000)
 met  <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/389/7/02d36541de9088f2dd99d79dc3a7a853")
 
 weather_sum = met%>%

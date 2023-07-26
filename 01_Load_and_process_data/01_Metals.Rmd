@@ -39,5 +39,5 @@ metals_final = metals_surf%>%
          TFe_mgL = ifelse(Date=="2022-06-07",NA,TFe_mgL),
          TMn_mgL = ifelse(Date=="2022-06-07",NA,TMn_mgL))
 
-write.csv(metals_final,"./Processed_data/Metals at 0.1m.csv",row.names=F)
+write.csv(metals_final,"../Processed_data/Metals at 0.1m.csv",row.names=F)
 ```

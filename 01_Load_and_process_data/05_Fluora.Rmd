@@ -5,14 +5,12 @@ date: "Last updated: 2023-07-25 ASL"
 output: html_document
 ---
 
-This file loads fluoroprobe data from EDI and creates a summary output dataframes and figures
+This file loads fluoroprobe data from EDI and creates summary output dataframes
 
 Step 1: Load packages and FP data
 Step 2: Select and export surface data
 Step 3: Calculate Cmax depth
-Step 4: Compare with PZ depth
-Step 5: Calculate peak width
-Step 6: Key numbers and stats for manuscript
+Step 4: Calculate peak width (this also exports quality control figures)
 
 
 Step 1: Load packages and FP data
@@ -38,7 +36,7 @@ fluora_surface=fluora%>%
   mutate(min_depth = min(Depth_m))%>%
   filter(Depth_m==min_depth)
 
-write.csv(fluora_surface,"Processed_data/Fluora_surface.csv", row.names = F)
+write.csv(fluora_surface,"../Processed_data/Fluora_surface.csv", row.names = F)
 ```
 
 
@@ -58,6 +56,7 @@ flo_metrics = fluora%>%
   filter(Reservoir == "BVR", Site == 50,
          year(DateTime)%in% c(2021,2022))%>%
   mutate(Date= as.Date(DateTime)) 
+write.csv(flo_metrics,"../Processed_data/Fluora_bvr.csv", row.names = F)
 
 # Calculate Cmax depth for each group in a for loop
 
@@ -85,83 +84,11 @@ for (i in 1:length(datez)){
 Cmax_final <- Cmax
 colnames(Cmax_final) <- c("Date","CmaxDepth_GreenAlgae_ugL","CmaxDepth_Bluegreens_ugL","CmaxDepth_BrownAlgae_ugL","CmaxDepth_MixedAlgae_ugL","CmaxDepth_TotalConc_ugL")
 # Export data
-write.csv(Cmax_final, file = "./Processed_data/FP_CmaxDepth.csv",row.names = FALSE)
+write.csv(Cmax_final, file = "../Processed_data/FP_CmaxDepth.csv", row.names = FALSE)
 ```
 
 
-Step 4: Compare with PZ depth
-```{r}
-#read in light attenuation calculations and look @ Cmax relative to pz depth
-pz <- read_csv("./Processed_data/attenuation_calc.csv") %>%
-  mutate(Date = date(Date))
-
-Cmax <- tibble(Cmax) %>%
-  mutate(Date = date(Date))
-
-cmpz <- left_join(Cmax, pz, by = "Date") %>%
-  mutate(green_rel_pz = (Zeu-green)/Zeu,
-         cyano_rel_pz = (Zeu-cyano)/Zeu,
-         brown_rel_pz = (Zeu-brown)/Zeu,
-         crypto_rel_pz = (Zeu-crypto)/Zeu,
-         total_rel_pz = (Zeu-total)/Zeu,
-         green_rel_pz_0.1 = (Zeu_0.1-green)/Zeu_0.1,
-         cyano_rel_pz_0.1 = (Zeu_0.1-cyano)/Zeu_0.1,
-         brown_rel_pz_0.1 = (Zeu_0.1-brown)/Zeu_0.1,
-         crypto_rel_pz_0.1 = (Zeu_0.1-crypto)/Zeu_0.1,
-         total_rel_pz_0.1 = (Zeu_0.1-total)/Zeu_0.1) %>%
-  select(-(green:r2))%>%
-  filter(!is.na(Zeu)) %>%
-  mutate(Year = year(Date)) %>%
-  gather(green_rel_pz:total_rel_pz_0.1, key = "spectral_group", value = "Cmax_depth_rel_pz") %>%
-  mutate(pz_calc = ifelse(grepl("0.1",spectral_group),"0.1%","1%"))
-
-#data wrangling to plot
-Cmax_plot <- Cmax %>%
-  mutate(Year = year(Date)) %>%
-  gather(green:total, key = "spectral_group", value = "Cmax_depth")
-
-cmpz_1 <- cmpz_plot %>% filter(pz_calc == "1%")
-cmpz_0.1 <- cmpz_plot %>% filter(pz_calc == "0.1%")
-
-#data wrangling to plot Zeu
-pz_plot <- pz %>%
-  mutate(Year = year(Date)) %>%
-  filter(Year %in% c(2021,2022)) %>%
-  select(-(I0:r2)) %>%
-  gather(Zeu:Zeu_0.1, key = "perc_light", value = "pz_depth")
-
-jpeg("./Figs/SI_Cmax_depth_pz_1.jpeg", res = 300, width = 6, height = 4, units = "in")
-ggplot(data = subset(cmpz_1, cmpz_1$spectral_group != "crypto_rel_pz"), aes(x = spectral_group, y = Cmax_depth_rel_pz, fill = as.factor(Year)))+
-  geom_boxplot()+
-  geom_hline(yintercept = 0)+
-  theme_bw()+
-  ggtitle("Photic zone = 1% light; this is ONLY May-July")+
-  xlab("Spectral group")+
-  ylab("Cmax depth standardized to photic zone depth")+
-  labs(fill = "Year")+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
-  scale_x_discrete(labels=c("green_rel_pz" = "Green algae", "cyano_rel_pz" = "Cyanobacteria",
-                              "brown_rel_pz" = "Brown algae", "total_rel_pz" = "Total phyto."))
-dev.off()
-
-jpeg("./Figs/SI_Cmax_depth_pz_0.1.jpeg", res = 300, width = 6, height = 4, units = "in")
-ggplot(data = subset(cmpz_0.1, cmpz_0.1$spectral_group != "crypto_rel_pz_0.1"), aes(x = spectral_group, y = Cmax_depth_rel_pz, fill = as.factor(Year)))+
-  geom_boxplot()+
-  geom_hline(yintercept = 0)+
-  theme_bw()+
-  ggtitle("Photic zone = 0.1% light; this is ONLY May-July")+
-  xlab("Spectral group")+
-  ylab("Cmax depth standardized to photic zone depth")+
-  labs(fill = "Year")+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
-  scale_x_discrete(labels=c("green_rel_pz_0.1" = "Green algae", "cyano_rel_pz_0.1" = "Cyanobacteria",
-                              "brown_rel_pz_0.1" = "Brown algae", "total_rel_pz_0.1" = "Total phyto."))
-dev.off()
-```
-
-
-Step 5: Calculate peak width
+Step 4: Calculate peak width
 ```{r}
 #data wrangling
 pw <- flo_metrics[,c(3,5:8,10,11)] %>%
@@ -215,7 +142,7 @@ for (i in 1:length(profiles)){
                          conc_med = conc_med)
     
     #plot profile + peak width
-    plot_filename = paste0("./Figs/peak_width_plots_FWB/",profile$key[1],".jpeg")
+    plot_filename = paste0("../Figs/peak_width_plots_FWB/",profile$key[1],".jpeg")
     # create plot
                   pp0 = ggplot() +
                       geom_line(data = profile, aes(x = depth, y = chl), size = 0.75, color = "springgreen3")+
@@ -255,35 +182,5 @@ pw2 <- tibble(pw2) %>%
          PeakWidth_MixedAlgae_m = crypto,
          PeakWidth_TotalConc_m = total)
 
-write.csv(pw2, file = "./Processed_data/FP_PeakWidth.csv",row.names = FALSE)
-```
-
-
-Step 6: Key numbers and stats for manuscript
-```{r}
-# dominance of cyanobacteria during study period
-dom <- flo_metrics %>%
-  select(-Reservoir, -Site) %>%
-  mutate(Date = date(DateTime)) %>%
-  filter((Date >= "2021-05-01" & Date <= "2021-09-01") | (Date >= "2022-05-01" & Date <= "2022-09-01")) %>%
-  group_by(Date) %>%
-  summarize(GreenAlgae_ugL = mean(GreenAlgae_ugL, na.rm = TRUE),
-            Bluegreens_ugL = mean(Bluegreens_ugL, na.rm = TRUE),
-            BrownAlgae_ugL = mean(BrownAlgae_ugL, na.rm = TRUE),
-            MixedAlgae_ugL = mean(MixedAlgae_ugL, na.rm = TRUE),
-            TotalConc_ugL = mean(TotalConc_ugL, na.rm = TRUE)) %>%
-  mutate(prop_ga = GreenAlgae_ugL/TotalConc_ugL,
-         prop_bg = Bluegreens_ugL/TotalConc_ugL,
-         prop_ba = BrownAlgae_ugL/TotalConc_ugL,
-         prop_ma = MixedAlgae_ugL/TotalConc_ugL) %>%
-  rowwise() %>%
-  mutate(dom = max(c(prop_ga, prop_bg, prop_ba, prop_ma))) %>%
-  rowwise() %>%
-  mutate(dom_group = ifelse(dom == prop_ga, "GreenAlgae",
-                            ifelse(dom == prop_bg, "Bluegreens",
-                                   ifelse(dom == prop_ba, "BrownAlgae",
-                                          ifelse(dom == prop_ma, "MixedAlgae","zombies")))))
-
-dom %>%
-  count(dom_group)
+write.csv(pw2, file = "../Processed_data/FP_PeakWidth.csv",row.names = FALSE)
 ```
