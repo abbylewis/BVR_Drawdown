@@ -55,3 +55,7 @@ Downloaded data (unmodified from original source)
 ### ./Compiled_data
 
 Compiled datasets, created by the data analysis scripts
+
+### ./R
+
+Helper functions referenced by data analysis code
