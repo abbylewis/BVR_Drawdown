@@ -27,20 +27,27 @@ Carbon dioxide, drawdown, dissolved oxygen, high-frequency sensors, nitrogen, ph
 
 ## Repo content information
 
-### Code files
+### 01_Load_and_process_data
+
+Scripts to load data from EDI and calculate relevant summary metrics (e.g., Schmidt stability). These files are organized based on the origin data package and so not produce any statistics or figures for the main manuscript. Output data files are stored in ./Processed_data
 
 * 01_Metals.Rmd:
-   * Load metals data from EDI and format for 07_Figures_5to7.Rmd
+   * Load and format metals data from EDI
 * 02_Chem.Rmd
-   * Load chemistry (N and P) data from EDI and format for 07_Figures_5to7.Rmd
+   * Load and format chemistry (N, P, DOC) data from EDI
 * 03_GHG.Rmd
-   * Load greenhouse gas (GHG) data from EDI and format for 07_Figures_5to7.Rmd
+   * Load and format greenhouse gas (GHG) data from EDI
 * 04_CTD.Rmd
-   * Load CTD data from EDI, create a heatmap for Figure 3, and calculate euphotic zone
+   * Load and format CTD data from EDI and calculate euphotic zone
 * 05_Fluora.Rmd
-   * Load fluoroprobe data from EDI, calculate peak width and cmax depth, and format for 07_Figures_5to7.Rmd
+   * Load fluoroprobe data from EDI and calculate peak width and cmax depth
 * 06_Physical metrics.Rmd
    * Load in-situ thermistor and meteorological data from EDI, calculate physical metrics for Figures 2, 3, 4, and 7
+
+### 02_Plotting_and_stats
+
+Use data files in ./Processed_data to produce figures and statistics for the manuscript
+
 * 07_Figures_5to7.Rmd
    * Generate time-series line plots of variables of interest (Figures 5-7)
 * 08_Met_stats.Rmd
