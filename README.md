@@ -29,15 +29,24 @@ Carbon dioxide, drawdown, dissolved oxygen, high-frequency sensors, nitrogen, ph
 
 ### Code files
 
-* 01_Metals.Rmd
+* 01_Metals.Rmd:
+   * Load metals data from EDI and format for 07_Figures_5to7.Rmd
 * 02_Chem.Rmd
+   * Load chemistry (N and P) data from EDI and format for 07_Figures_5to7.Rmd
 * 03_GHG.Rmd
-* 04_Fluora.Rmd
-* 05_Physical metrics.Rmd
-* 06_CTD.Rmd
+   * Load greenhouse gas (GHG) data from EDI and format for 07_Figures_5to7.Rmd
+* 04_CTD.Rmd
+   * Load CTD data from EDI, create a heatmap for Figure 3, and calculate euphotic zone
+* 05_Fluora.Rmd
+   * Load fluoroprobe data from EDI, calculate peak width and cmax depth, and format for 07_Figures_5to7.Rmd
+* 06_Physical metrics.Rmd
+   * Load in-situ thermistor and meteorological data from EDI, calculate physical metrics for Figures 2, 3, 4, and 7
 * 07_Figures_5to7.Rmd
+   * Generate time-series line plots of variables of interest (Figures 5-7)
 * 08_Met_stats.Rmd
+   * Calculate summary statistics for meteorological data
 * 09_NID.Rmd
+   * Analyze data from the national inventory of dams to understand the distribution of reservoir sizes in the U.S.
 
 ### ./Raw_external_data
 
