@@ -1,0 +1,226 @@
+---
+title: "Physics"
+author: "Abby Lewis"
+date: "2022-08-30"
+output: html_document
+---
+
+This file loads in-situ thermistor data and calculates lake physics metrics
+
+Load packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(rLakeAnalyzer)
+library(lubridate)
+library(rLakeAnalyzer)
+library(akima)
+library(colorRamps)
+library(zoo)
+library(ggpubr)
+source("../R/thermo.depth.density.R")
+```
+
+
+Load and format thermistor data
+```{r}
+sensor <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/725/3/a9a7ff6fe8dc20f7a8f89447d4dc2038")
+depth_offset <- read.csv("https://portal.edirepository.org/nis/dataviewer?packageid=edi.725.3&entityid=5927a50118644fa451badb3b84233bb7")
+
+#Need the actual depth of the thermistor sensors, accounting for changing water level
+bvr_new <- sensor%>%
+  select(Reservoir,Site,DateTime,starts_with("ThermistorTemp"),Depth_m_13)%>%
+  pivot_longer(cols = starts_with("ThermistorTemp"), 
+               values_to = "Reading", 
+               names_prefix = "ThermistorTemp_C_",
+               names_to = "Position")%>%
+  mutate(Position = as.numeric(Position))%>%
+  full_join(depth_offset)
+
+bvr_pre_05APR21 <- bvr_new%>%
+  filter(DateTime<="2021-04-05 13:20")%>%
+  mutate(Sensor_depth=Depth_m_13-Offset_before_05APR21)%>% #this gives you the depth of the thermistors from the surface
+  mutate(Rounded_depth_hundreth=round(Sensor_depth, 2))#Round to the nearest hundredth 
+  
+bvr_post_05APR21=bvr_new%>%
+  filter(DateTime>"2021-04-05 13:20")%>%
+  mutate(Sensor_depth=Depth_m_13-Offset_after_05APR21)%>% #this gives you the depth of the thermistor from the surface
+  mutate(Rounded_depth_hundreth=round(Sensor_depth, 2)) #Round to the nearest hundredth 
+
+# combine the pre April 5th and the post April 5th. Drop if the sensor depth is NA because can't
+# figure out the depth of the sensors. This will give you a depth for each sensor reading. 
+cat_long=bvr_pre_05APR21%>%
+  rbind(.,bvr_post_05APR21)%>%
+  filter(!is.na(Sensor_depth),
+         year(DateTime)%in% c(2021,2022))%>%
+  select(-Offset_before_05APR21, -Offset_after_05APR21, -Distance_above_sediments)%>%
+  mutate(Reservoir_depth=Depth_m_13+0.5)%>%
+  select(Reservoir, Site,DateTime, Reading, Sensor_depth, Rounded_depth_hundreth, Depth_m_13, Reservoir_depth)
+
+write.csv(cat_long,"../Processed_data/BVR_longoutput.csv", row.names = F)
+```
+
+
+Format bathymetry data
+```{r}
+#Load bathymetry
+bathy_raw <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/1254/1/f7fa2a06e1229ee75ea39eb586577184")
+
+bathy = bathy_raw%>%
+  filter(Reservoir == "BVR")
+
+#Need to create changing bathymetry for each date, which I will do in several steps
+#First, get the water levels at each date
+cat_depths = cat_long%>%
+  mutate(Date = as.Date(as.POSIXct(DateTime)))%>%
+  filter(!is.na(Reading))%>%
+  group_by(Date)%>%
+  dplyr::summarize(WaterLevel = mean(Reservoir_depth))
+#Then create a dataframe with bathymetry at each date
+flexible_bathy = cat_depths%>%
+  mutate(Reservoir = "BVR")%>%
+  full_join(bathy)%>%
+  group_by(Date)%>%
+  mutate(Depth_m = Depth_m - (max(Depth_m)-unique(WaterLevel)) + 1)%>%
+  filter(Depth_m>=0)
+#Format temperature data for lake analyzer
+catwalk_format = cat_long%>%
+  filter(!is.na(Reading))%>%
+  mutate(Date = as.Date(as.POSIXct(DateTime)),
+         Sensor_depth = round(Sensor_depth,1)
+         )%>%
+  group_by(Date)%>%
+  mutate(Reservoir_depth = mean(Reservoir_depth))%>%
+  group_by(Date, Sensor_depth)%>%
+  dplyr::summarize(Reading=mean(Reading,na.rm = T),
+                   Reservoir_depth = unique(Reservoir_depth))
+```
+
+
+Calculate Schmidt stability
+```{r}
+#Calculate schmidt stability each day
+schmidts = c()
+for(date in unique(catwalk_format$Date)){
+  temps = catwalk_format%>%
+    filter(Date == date)
+  baths = flexible_bathy%>%
+    filter(Date==date)
+  schmidts = c(schmidts, schmidt.stability(wtr = temps$Reading, depths = temps$Sensor_depth, bthA = baths$SA_m2, bthD = baths$Depth_m, sal = rep(0,length(temps$Reading))))
+}
+schmidt_df = data.frame(Date = unique(catwalk_format$Date), Schmidt = schmidts)%>%
+  mutate(Year = year(Date))
+schmidt_df$Date_22 = schmidt_df$Date
+year(schmidt_df$Date_22)=2022
+
+write.csv(schmidt_df, "Schmidt.csv", row.names = F)
+```
+
+
+Calculate maximum buoyancy frequency
+```{r}
+#Calculate buoyancy frequency each day
+buoyancy_raw = catwalk_format%>%
+  filter(!is.na(Reading))%>%
+  mutate(Depth_simple = floor(Sensor_depth))%>%
+  group_by(Date,Depth_simple)%>%
+  dplyr::summarize(Temp_C = mean(Reading),
+            Depth_m = mean(Sensor_depth))%>%
+  arrange(Date,Depth_m)%>%
+  group_by(Date)%>%
+  filter((Depth_m-lag(Depth_m)>.4)|(Depth_m-lag(Depth_m)<0)|is.na(lag(Depth_m)))%>%
+  dplyr::summarize(buoy_freq = buoyancy.freq(Temp_C, Depth_m),
+                   Depth_m = attr(buoyancy.freq(Temp_C, Depth_m), 'depths'))
+buoy_max = buoyancy_raw%>%
+  group_by(Date)%>%
+  dplyr::summarize(max = max(buoy_freq))
+buoy_max$Date_22 = buoy_max$Date
+year(buoy_max$Date_22)=2022
+
+write.csv(buoy_max, "BF.csv", row.names = F)
+```
+
+
+Calculate volume-weighted water temperature
+```{r}
+#Calculate volume-weighted water temperature each day
+#First, need to add surface measurements where they are missing
+surf = catwalk_format%>%
+  group_by(Date)%>%
+  dplyr::summarize(Reading = Reading[which.min(Sensor_depth)],
+            Sensor_depth = 0,
+            Reservoir_depth = unique(Reservoir_depth))
+catwalk_format_with_zero = catwalk_format%>%
+  full_join(surf)%>%
+  arrange(Date,Sensor_depth)
+#Then, run the calculations
+vw_temp = c()
+for(date in unique(catwalk_format_with_zero$Date)){
+  temps = catwalk_format_with_zero%>%
+    filter(Date == date)
+  baths = flexible_bathy%>%
+    filter(Date==date)
+  vw_temp = c(vw_temp, layer.temperature(top = min(baths$Depth_m), bottom = max(baths$Depth_m), wtr = temps$Reading, depths = temps$Sensor_depth, bthA = baths$SA_m2, bthD = baths$Depth_m))
+}
+vw_temp_df = data.frame(Date = unique(catwalk_format$Date), vw_temp = vw_temp)%>%
+  mutate(Year = year(Date))
+vw_temp_df$Date_22 = vw_temp_df$Date
+year(vw_temp_df$Date_22)=2022
+
+write.csv(vw_temp, "VW_temp.csv", row.names = F)
+```
+
+
+Calculate thermocline depths
+```{r}
+flexible_bathy = cat_depths%>%
+  mutate(Reservoir = "BVR")%>%
+  full_join(bathy)%>%
+  group_by(Date)%>%
+  mutate(Depth_m = Depth_m - (max(Depth_m)-unique(WaterLevel)) + 1)%>%
+  filter(Depth_m>=-1)
+
+thermo_raw = catwalk_format%>%
+  filter(!is.na(Reading))%>%
+  mutate(Depth_simple = floor(Sensor_depth))%>%
+  group_by(Date,Depth_simple)%>%
+  dplyr::summarize(Temp_C = mean(Reading),
+            Depth_m = mean(Sensor_depth),
+            Reservoir_depth = mean(Reservoir_depth))%>%
+  arrange(Date,Depth_m)%>%
+  group_by(Date)%>%
+  filter((Depth_m-lag(Depth_m)>.4)|(Depth_m-lag(Depth_m)<0)|is.na(lag(Depth_m)))%>%
+  dplyr::summarize(thermo = thermo.depth(Temp_C, Depth_m),
+            Reservoir_depth = mean(Reservoir_depth))
+  
+thermo_raw$Date_22 = thermo_raw$Date
+year(thermo_raw$Date_22)=2022
+
+write.csv(thermo_raw%>%select(-Date_22),"./Processed_data/thermocline_depth.csv", row.names = F)
+```
+
+
+Calculate volume of each layer of the reservoir
+```{r}
+meta_ratio = flexible_bathy%>%
+  left_join(thermo_raw)%>%
+  filter(!is.na(thermo),thermo>0)%>%
+  group_by(Date)%>%
+  rename(Volume_L = Volume_layer_L)%>%
+  dplyr::summarize(depth_above_thermo = max(Depth_m[Depth_m<(thermo)]),
+            thermo_and_just_below = sum(Volume_L[Depth_m<=depth_above_thermo]), #1m layers
+            correction_thermo = unique(1-(thermo-depth_above_thermo))*Volume_L[Depth_m==depth_above_thermo],
+            depth_above_water = unique(Depth_m[Depth_m<0]),
+            correction_surf = abs(unique(depth_above_water))*Volume_L[Depth_m==depth_above_water],
+            epi_volume = unique(thermo_and_just_below-correction_thermo-correction_surf),
+            hypo_and_above = sum(Volume_L[Depth_m>=depth_above_thermo]),
+            correction_hypo = unique(thermo-depth_above_thermo)*Volume_L[Depth_m==depth_above_thermo],
+            hypo_volume = unique(hypo_and_above-correction_hypo),
+            epi_hypo_ratio = unique(epi_volume/hypo_volume)
+  )
+
+meta_ratio$Date_22 = meta_ratio$Date
+year(meta_ratio$Date_22) = 2022
+
+write.csv(meta_ratio, "meta_ratio.csv", row.names = F)
+```
