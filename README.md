@@ -31,18 +31,20 @@ Carbon dioxide, drawdown, dissolved oxygen, high-frequency sensors, nitrogen, ph
 
 Scripts to load data from EDI and calculate relevant summary metrics (e.g., Schmidt stability). Each code file corresponds to one data package on EDI. These code files do not produce any statistics or figures for the main manuscript, rather they output compiled data products, which are stored in ./Processed_data. 
 
-* [01_Load_and_process_data/01_Metals.Rmd](01_Load_and_process_data/01_Metals.Rmd):
+* [01_Load_and_process_data/Metals.Rmd](01_Load_and_process_data/Metals.Rmd):
    * Load and format metals data from EDI
-* [01_Load_and_process_data/02_Chem.Rmd](01_Load_and_process_data/02_Chem.Rmd)
+* [01_Load_and_process_data/Chem.Rmd](01_Load_and_process_data/Chem.Rmd)
    * Load and format chemistry (N, P, DOC) data from EDI
-* [01_Load_and_process_data/03_GHG.Rmd](01_Load_and_process_data/03_GHG.Rmd)
+* [01_Load_and_process_data/GHG.Rmd](01_Load_and_process_data/GHG.Rmd)
    * Load and format greenhouse gas (GHG) data from EDI
-* [01_Load_and_process_data/04_CTD.Rmd](01_Load_and_process_data/04_CTD.Rmd)
+* [01_Load_and_process_data/CTD.Rmd](01_Load_and_process_data/CTD.Rmd)
    * Load and format CTD data from EDI and calculate euphotic zone depth
-* [01_Load_and_process_data/05_Fluora.Rmd](01_Load_and_process_data/05_Fluora.Rmd)
+* [01_Load_and_process_data/Fluora.Rmd](01_Load_and_process_data/Fluora.Rmd)
    * Load and format fluoroprobe data from EDI and calculate peak width and Cmax depth
-* [01_Load_and_process_data/06_Physical metrics.Rmd](01_Load_and_process_data/06_Physical metrics.Rmd)
+* [01_Load_and_process_data/Thermistor.Rmd](01_Load_and_process_data/Thermistor.Rmd)
    * Load and format in-situ thermistor and meteorological data from EDI. Calculate physical metrics that will be used in Figures 2, 3, 4, and 7
+* [01_Load_and_process_data/Meteorology.Rmd](01_Load_and_process_data/Meteorology.Rmd)
+   * Load and format meteorological data
 
 ### [02_Plotting_and_stats](02_Plotting_and_stats)
 
