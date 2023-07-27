@@ -10,6 +10,7 @@ This file loads CTD and YSI data from EDI and generates three outputs:
 2) a dataframe with processed CTD data in 0.1 m intervals (using YSI to fill data gaps)
 3) a dataframe with calculated light attenuation outputs
 
+
 Step 1: Load data and packages
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)

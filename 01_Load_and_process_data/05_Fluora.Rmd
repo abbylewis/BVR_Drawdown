@@ -5,12 +5,12 @@ date: "Last updated: 2023-07-25 ASL"
 output: html_document
 ---
 
-This file loads fluoroprobe data from EDI and creates summary output dataframes
+This file loads fluoroprobe data from EDI and creates summary output dataframes (surface, Cmax depth, peak width)
 
 Step 1: Load packages and FP data
 Step 2: Select and export surface data
-Step 3: Calculate Cmax depth
-Step 4: Calculate peak width (this also exports quality control figures)
+Step 3: Calculate and export Cmax depth
+Step 4: Calculate and export peak width (this also exports quality control figures)
 
 
 Step 1: Load packages and FP data
@@ -40,7 +40,7 @@ write.csv(fluora_surface,"../Processed_data/Fluora_surface.csv", row.names = F)
 ```
 
 
-Step 3: Calculate Cmax depth
+Step 3: Calculate and export Cmax depth
 ```{r}
 # Data wrangling to get dataframe ready to calculate metrics
 flo_metrics = fluora%>%
@@ -88,7 +88,7 @@ write.csv(Cmax_final, file = "../Processed_data/FP_CmaxDepth.csv", row.names = F
 ```
 
 
-Step 4: Calculate peak width
+Step 4: Calculate and export peak width
 ```{r}
 #data wrangling
 pw <- flo_metrics[,c(3,5:8,10,11)] %>%

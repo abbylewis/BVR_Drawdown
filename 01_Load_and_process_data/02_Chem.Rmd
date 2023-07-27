@@ -40,4 +40,3 @@ year(chem_full$Date_22)<-2022
 
 write.csv(chem_full,"../Processed_data/Chem at 0.1m.csv", row.names = F)
 ```
-
