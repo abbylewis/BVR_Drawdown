@@ -18,21 +18,50 @@ library(colorRamps)
 library(zoo)
 library(ggpubr)
 source("R/thermo.depth.density.R")
-
-lines = data.frame(Dates = as.Date(c("2022-06-28", "2022-05-19","2022-05-28", "2022-07-01")), desc = c("closed","opened", "decreasing", "stable"), type = c("close","open","open","close"), status = c("init","init","final","final"), Year = 2022, year_class = "2022")
-#Only plot pipe manipulations for now
-lines = lines%>%
-  filter(status == "init")
-#Re-format for rectangle instead of discrete lines
-lines_rect = lines%>%
-  select(-type)%>%
-  pivot_wider(names_from = desc, values_from = Dates)
 ```
+
+```{r}
+sensor <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/725/3/a9a7ff6fe8dc20f7a8f89447d4dc2038")
+depth_offset <- read.csv("https://portal.edirepository.org/nis/dataviewer?packageid=edi.725.3&entityid=5927a50118644fa451badb3b84233bb7")
+
+#Need the actual depth of the thermistor sensors, accounting for changing water level
+bvr_new <- sensor%>%
+  select(Reservoir,Site,DateTime,starts_with("ThermistorTemp"),Depth_m_13)%>%
+  pivot_longer(cols = starts_with("ThermistorTemp"), 
+               values_to = "Reading", 
+               names_prefix = "ThermistorTemp_C_",
+               names_to = "Position")%>%
+  mutate(Position = as.numeric(Position))%>%
+  full_join(depth_offset)
+
+bvr_pre_05APR21 <- bvr_new%>%
+  filter(DateTime<="2021-04-05 13:20")%>%
+  mutate(Sensor_depth=Depth_m_13-Offset_before_05APR21)%>% #this gives you the depth of the thermistors from the surface
+  mutate(Rounded_depth_hundreth=round(Sensor_depth, 2))#Round to the nearest hundredth 
+  
+bvr_post_05APR21=bvr_new%>%
+  filter(DateTime>"2021-04-05 13:20")%>%
+  mutate(Sensor_depth=Depth_m_13-Offset_after_05APR21)%>% #this gives you the depth of the thermistor from the surface
+  mutate(Rounded_depth_hundreth=round(Sensor_depth, 2)) #Round to the nearest hundredth 
+
+# combine the pre April 5th and the post April 5th. Drop if the sensor depth is NA because can't
+# figure out the depth of the sensors. This will give you a depth for each sensor reading. 
+bvr_by_depth=bvr_pre_05APR21%>%
+  rbind(.,bvr_post_05APR21)%>%
+  filter(!is.na(Sensor_depth),
+         year(DateTime)%in% c(2021,2022))%>%
+  select(-Offset_before_05APR21, -Offset_after_05APR21, -Distance_above_sediments)%>%
+  mutate(Reservoir_depth=Depth_m_13+0.5)%>%
+  select(Reservoir, Site,DateTime, Reading, Sensor_depth, Rounded_depth_hundreth, Depth_m_13, Reservoir_depth)
+
+write.csv(bvr_by_depth,"../Processed_data/BVR_longoutput.csv")
+```
+
 
 Figure PHYSICS- water column measures (schmidt, buoyancy freq)
 ```{r}
 #Load thermistor data
-cat_long = read.csv("Data/BVR_longoutput_FLARE_2020_2021.csv")%>%
+cat_long = read.csv("../Data/BVR_longoutput_FLARE_2020_2021.csv")%>%
   filter(Sensor=="ThermistorTemp")
 
 #Load bathymetry
@@ -92,7 +121,7 @@ buoyancy_raw = catwalk_format%>%
   group_by(Date)%>%
   filter((Depth_m-lag(Depth_m)>.4)|(Depth_m-lag(Depth_m)<0)|is.na(lag(Depth_m)))%>%
   dplyr::summarize(buoy_freq = buoyancy.freq(Temp_C, Depth_m),
-            Depth_m = attr(buoyancy.freq(Temp_C, Depth_m), 'depths'))
+                   Depth_m = attr(buoyancy.freq(Temp_C, Depth_m), 'depths'))
 buoy_max = buoyancy_raw%>%
   group_by(Date)%>%
   dplyr::summarize(max = max(buoy_freq))
@@ -139,121 +168,6 @@ bot = catwalk_format%>%
   filter(Year %in% c(2021,2022))%>%
   mutate(Year = as.factor(Year))
 year(bot$Date_22) = 2022
-
-###
-# PLOT RESULTS
-###
-
-jpeg("./Figs/Schmidt_exo.jpg",res = 300, units = "in",width = 6, height = 4)
-schmidt_fig = schmidt_df%>%
-  filter(Year %in% c(2021,2022),
-         !is.na(Schmidt))%>%
-  mutate(Year = as.factor(Year))%>%
-  ggplot()+
-  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
-  geom_point(aes(x = Date_22,y = Schmidt, fill = Year, color = Year), shape = 21, stroke = .5, size = 1.5)+
-  scale_fill_manual(values = c("black","#00F7FF"))+
-  scale_color_manual(values = c("black","#0800FA"))+
-  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
-  ylab("Schmidt stability (J/m^2)")+
-  theme_bw()+
-  scale_x_date(date_breaks = "2 month", date_labels =  "%b")+
-  theme(axis.title.x = element_blank(),
-        legend.position = "none")
-schmidt_fig
-dev.off()
-
-jpeg("./Figs/buoyancy_freq.jpg",res = 300, units = "in",width = 6, height = 4)
-buoy_fig = buoy_max%>%
-  mutate(Year = as.factor(year(Date)))%>%
-  filter(Year %in% c(2021,2022))%>%
-  ggplot()+
-  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
-  geom_point(aes(x = Date_22, y= max, color = Year, fill = Year),shape = 21, stroke = .5, size = 1.5)+
-  scale_fill_manual(values = c("black","#00F7FF"))+
-  scale_color_manual(values = c("black","#0800FA"))+
-  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
-  theme_bw()+
-  ylab("Maximum buoyancy\nfrequency (1/s)")+
-  scale_x_date(date_breaks = "2 month", date_labels =  "%b")+
-  theme(axis.title.x = element_blank(),
-        legend.position = "none")
-buoy_fig
-dev.off()
-
-jpeg("./Figs/VW_temp_exo.jpg",res = 300, units = "in",width = 6, height = 4)
-water = vw_temp_df%>%
-  filter(Year %in% c(2021,2022),
-         !is.na(vw_temp))%>%
-  mutate(Year = as.factor(Year))%>%
-  ggplot()+
-  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
-  geom_point(aes(x = Date_22, y = vw_temp, fill = Year, color = Year),shape = 21, stroke = .5, size = 1.5)+
-  scale_fill_manual(values = c("black","#00F7FF"))+
-  scale_color_manual(values = c("black","#0800FA"))+
-  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
-  ylab("Volume-weighted\nwater temperature (ºC)")+
-  theme_bw()+
-  scale_x_date(date_breaks = "2 month", date_labels =  "%b")+
-  theme(axis.title.x = element_blank(),
-        legend.position = "none")
-water
-dev.off()
-
-jpeg("./Figs/surface_temp.jpg",res = 300, units = "in",width = 6, height = 4)
-surf_plot_save = surf_plot%>%
-  mutate(Year = as.factor(Year))%>%
-  ggplot()+
-  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
-  geom_point(aes(x = Date_22, y = Reading, fill = Year, color = Year), shape = 21, stroke = .5, size = 1.5)+
-  scale_fill_manual(values = c("black","#00F7FF"))+
-  scale_color_manual(values = c("black","#0800FA"))+
-  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
-  ylab("Surface water temperature (ºC)")+
-  theme_bw()+
-  scale_x_date(date_breaks = "2 month", date_labels =  "%b")+
-  theme(axis.title.x = element_blank())+
-  theme(legend.position = "none")
-dev.off()
-```
-
-Stats for paper/ misc
-```{r}
-#Turnover dates
-surf%>%
-  rename(surf_temp = Reading)%>%
-  select(-Sensor_depth,-Reservoir_depth)%>%
-  left_join(bot%>%rename(bot_temp=Reading))%>%
-  mutate(Year=year(Date))%>%
-  filter(month(Date)>7)%>%
-  group_by(Year)%>%
-  arrange(Date)%>%
-  summarize(turnover=first(Date[surf_temp-bot_temp<1]))
-
-#How much earlier was turnover?
-yday("2022-11-6")-yday("2021-10-19")
-
-vw_temp_df%>%
-  filter(month(Date)%in%c(7))%>%
-  group_by(Year)%>%
-  dplyr::summarise(mean = mean(vw_temp, na.rm = T),
-                   sd = sd(vw_temp, na.rm = T))
-22.44-19.70
-
-buoy_max%>%
-  filter(month(Date)%in%c(7))%>%
-  mutate(Year = year(Date))%>%
-  group_by(Year)%>%
-  dplyr::summarise(mean = mean(max, na.rm = T),
-                   sd = sd(max, na.rm = T))
-(0.01260153-0.01007704)/0.01007704
-
-schmidt_df%>%
-  filter(month(Date)%in%c(7))%>%
-  group_by(Year)%>%
-  dplyr::summarise(mean = mean(Schmidt, na.rm = T),
-                   sd = sd(Schmidt, na.rm = T))
-(124.55-66.87)/124.55
 ```
 
 Figure PHYSICS - air temp/wind/etc
