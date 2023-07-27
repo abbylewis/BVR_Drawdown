@@ -31,28 +31,36 @@ Carbon dioxide, drawdown, dissolved oxygen, high-frequency sensors, nitrogen, ph
 
 Scripts to load data from EDI and calculate relevant summary metrics (e.g., Schmidt stability). Each code file corresponds to one data package on EDI. These code files do not produce any statistics or figures for the main manuscript, rather they output compiled data products, which are stored in ./Processed_data. 
 
-* [01_Load_and_process_data/01_Metals.Rmd](01_Load_and_process_data/01_Metals.Rmd):
+* [01_Load_and_process_data/Metals.Rmd](01_Load_and_process_data/Metals.Rmd):
    * Load and format metals data from EDI
-* [01_Load_and_process_data/02_Chem.Rmd](01_Load_and_process_data/02_Chem.Rmd)
+* [01_Load_and_process_data/Chem.Rmd](01_Load_and_process_data/Chem.Rmd)
    * Load and format chemistry (N, P, DOC) data from EDI
-* [01_Load_and_process_data/03_GHG.Rmd](01_Load_and_process_data/03_GHG.Rmd)
+* [01_Load_and_process_data/GHG.Rmd](01_Load_and_process_data/GHG.Rmd)
    * Load and format greenhouse gas (GHG) data from EDI
-* [01_Load_and_process_data/04_CTD.Rmd](01_Load_and_process_data/04_CTD.Rmd)
+* [01_Load_and_process_data/CTD.Rmd](01_Load_and_process_data/CTD.Rmd)
    * Load and format CTD data from EDI and calculate euphotic zone depth
-* [01_Load_and_process_data/05_Fluora.Rmd](01_Load_and_process_data/05_Fluora.Rmd)
+* [01_Load_and_process_data/Fluoroprobe.Rmd](01_Load_and_process_data/Fluoroprobe.Rmd)
    * Load and format fluoroprobe data from EDI and calculate peak width and Cmax depth
-* [01_Load_and_process_data/06_Physical metrics.Rmd](01_Load_and_process_data/06_Physical metrics.Rmd)
+* [01_Load_and_process_data/Thermistors.Rmd](01_Load_and_process_data/Thermistors.Rmd)
    * Load and format in-situ thermistor and meteorological data from EDI. Calculate physical metrics that will be used in Figures 2, 3, 4, and 7
+* [01_Load_and_process_data/Meteorology.Rmd](01_Load_and_process_data/Meteorology.Rmd)
+   * Load and format meteorological data
 
 ### [02_Plotting_and_stats](02_Plotting_and_stats)
 
 These scripts use data files in ./Processed_data (generated using the scripts in 01_Load_and_process_data) to produce figures and statistics for the manuscript.
 
-* 07_Figures_5to7.Rmd
+* Figures_2to4.Rmd
+   * Analyze reservoir physics and meteorological data and generate Figures 2-4
+* Figures_5to7.Rmd
    * Generate time-series line plots of variables of interest (Figures 5-7)
-* 08_Met_stats.Rmd
-   * Calculate summary statistics for meteorological data
-* 09_NID.Rmd
+* Fluoroprobe - SI figure and summary stats.Rmd
+   * Calculate summary statistics for fluoroprobe data and create an SI figure
+* Meteorology statisitics.R
+   * Generate summary statisitics for meteorological data
+* SI_habitat_suitability.Rmd
+   * Generate figures of habitat suitability for SI
+* SI_NID.Rmd
    * Analyze data from the national inventory of dams to understand the distribution of reservoir sizes in the U.S.
 
 ### [Raw_external_data](Raw_external_data)
