@@ -181,7 +181,7 @@ vw_temp_df = data.frame(Date = unique(catwalk_format$Date), vw_temp = vw_temp)%>
 vw_temp_df$Date_22 = vw_temp_df$Date
 year(vw_temp_df$Date_22)=2022
 
-write.csv(vw_temp, "../Processed_data/VW_temp.csv", row.names = F)
+write.csv(vw_temp_df, "../Processed_data/VW_temp.csv", row.names = F)
 ```
 
 

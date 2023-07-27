@@ -1,0 +1,186 @@
+---
+title: "Fluora"
+author: "Abby Lewis and Mary Lofton"
+date: "Last updated: 2023-07-25 ASL"
+output: html_document
+---
+
+This file loads fluoroprobe data from EDI and creates summary output dataframes (surface, Cmax depth, peak width)
+
+Step 1: Load packages and FP data
+Step 2: Select and export surface data
+Step 3: Calculate and export Cmax depth
+Step 4: Calculate and export peak width (this also exports quality control figures)
+
+
+Step 1: Load packages and FP data
+```{r setup, include=FALSE}
+#load packages and set options
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+library(RCurl)
+
+fluora <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/272/7/001cb516ad3e8cbabe1fdcf6826a0a45")
+```
+
+
+Step 2: Select and export surface data
+```{r}
+fluora_surface=fluora%>%
+  filter(Reservoir=="BVR",
+         Site==50,
+         Depth_m<1)%>%
+  mutate(DateTime = as.Date(DateTime))%>%
+  group_by(DateTime)%>%
+  mutate(min_depth = min(Depth_m))%>%
+  filter(Depth_m==min_depth)
+
+write.csv(fluora_surface,"../Processed_data/Fluora_surface.csv", row.names = F)
+```
+
+
+Step 3: Calculate and export Cmax depth
+```{r}
+# Data wrangling to get dataframe ready to calculate metrics
+flo_metrics = fluora%>%
+  select(Reservoir, 
+         Site, Depth_m, 
+         DateTime, 
+         GreenAlgae_ugL, 
+         Bluegreens_ugL, 
+         BrownAlgae_ugL, 
+         MixedAlgae_ugL, 
+         YellowSubstances_ugL, 
+         TotalConc_ugL)%>%
+  filter(Reservoir == "BVR", Site == 50,
+         year(DateTime)%in% c(2021,2022))%>%
+  mutate(Date= as.Date(DateTime)) 
+write.csv(flo_metrics,"../Processed_data/Fluora_bvr.csv", row.names = F)
+
+# Calculate Cmax depth for each group in a for loop
+
+# Prepare dataframe for Cmax depth
+Cmax <- data.frame(matrix(data=NA, ncol=6, nrow=43))
+datez <- unique(flo_metrics$Date)
+
+# Extract and standardize cmax depth for each group
+for (i in 1:length(datez)){
+  dat <- flo_metrics %>%
+    filter(Date == datez[i])
+  dat <- dat[,c(11,5:8,10,3)]
+  for (j in 2:6){
+    if(all(dat[,j] == 0)){
+      Cmax[i,j] <- NA
+    } else {
+      max <- dat[which.max(dat[,j]),]
+      Cmax[i,j] <- max[1,7]
+    }
+  }
+  Cmax[i,1] <- as.character(dat$Date[1])
+}
+
+# Format data for export
+Cmax_final <- Cmax
+colnames(Cmax_final) <- c("Date","CmaxDepth_GreenAlgae_ugL","CmaxDepth_Bluegreens_ugL","CmaxDepth_BrownAlgae_ugL","CmaxDepth_MixedAlgae_ugL","CmaxDepth_TotalConc_ugL")
+# Export data
+write.csv(Cmax_final, file = "../Processed_data/FP_CmaxDepth.csv", row.names = FALSE)
+```
+
+
+Step 4: Calculate and export peak width
+```{r}
+#data wrangling
+pw <- flo_metrics[,c(3,5:8,10,11)] %>%
+  rename(green = GreenAlgae_ugL,
+         brown = BrownAlgae_ugL,
+         cyano = Bluegreens_ugL,
+         crypto = MixedAlgae_ugL,
+         total = TotalConc_ugL) %>%
+  gather(green:total, key = "spectral_group", value = "chl") %>%
+  mutate(key = paste(spectral_group, Date, sep = "_")) %>%
+  select(-spectral_group, -Date) %>%
+  rename(depth = Depth_m)
+
+data <- pw
+
+#calculate depth distribution characteristics for each profile
+profiles <- unique(pw$key)
+
+final <- matrix(NA,nrow = length(unique(pw$key)), ncol = 2)
+
+for (i in 1:length(profiles)){
+
+  profile <- pw %>%
+      filter(key == profiles[i])
+  
+  final[i,1] <- profile$key[1]
+  
+  #peak width calculation
+    max_depth <- unlist(profile[which.max(profile$chl),"depth"])
+    conc_med <- mean(profile$chl, na.rm = TRUE)
+    
+    peak.top.temp <- subset(profile, depth <= max_depth & chl <= conc_med)
+    if(nrow(peak.top.temp) == 0){
+      peak.top = min(profile$depth, na.rm = TRUE)
+    } else {
+      peak.top <- unlist(peak.top.temp[which.min(abs(peak.top.temp$depth - max_depth)),"depth"])
+    }
+  
+    peak.bottom.temp <- subset(profile, depth >= max_depth & chl <= conc_med)
+    if(nrow(peak.bottom.temp) == 0){
+      peak.bottom = max(profile$depth, na.rm = TRUE)
+    } else {
+      peak.bottom <- unlist(peak.bottom.temp[which.min(abs(peak.bottom.temp$depth - max_depth)),"depth"])
+      }
+    
+    peak.width = abs(peak.top - peak.bottom)
+    final[i,2] <- peak.width
+    
+    plot.df = data.frame(peak.top = peak.top,
+                         peak.bottom = peak.bottom,
+                         conc_med = conc_med)
+    
+    #plot profile + peak width
+    plot_filename = paste0("../Figs/peak_width_plots_FWB/",profile$key[1],".jpeg")
+    # create plot
+                  pp0 = ggplot() +
+                      geom_line(data = profile, aes(x = depth, y = chl), size = 0.75, color = "springgreen3")+
+                      geom_segment(data = plot.df, aes(x = peak.top, y = conc_med, xend = peak.bottom, yend = conc_med, colour = "red"))+
+                      scale_y_continuous()+
+                      scale_x_reverse()+
+                      ggtitle(profile$key[1])+
+                      guides(color="none")+
+                      labs(x = "Depth (m)", y = "ChlF")+
+                      coord_flip()+ 
+                      theme_bw() 
+                  
+                  # write plot to file
+                      ppi = 300
+                      png(file = plot_filename, width = 3*ppi, height = 3*ppi, res = ppi)
+                      print(pp0)
+                      dev.off()
+  
+}
+
+final <- data.frame(final)
+colnames(final) <- c("key","peak.width")
+
+pw2 <- final %>%
+  mutate(spectral_group = sapply(strsplit(final$key, split='_', fixed=TRUE),"[[",1),
+         Date = sapply(strsplit(final$key, split='_', fixed=TRUE),"[[",2)) %>%
+  mutate(Year = year(Date)) %>%
+  select(Year, Date, spectral_group, peak.width) %>%
+  mutate(peak.width = as.numeric(peak.width))
+
+pw2 <- tibble(pw2) %>%
+  mutate(Date = as.Date(Date)) %>%
+  pivot_wider(names_from = spectral_group, values_from = peak.width) %>%
+  rename(PeakWidth_GreenAlgae_m = green,
+         PeakWidth_Bluegreens_m = cyano,
+         PeakWidth_BrownAlgae_m = brown,
+         PeakWidth_MixedAlgae_m = crypto,
+         PeakWidth_TotalConc_m = total)
+
+write.csv(pw2, file = "../Processed_data/FP_PeakWidth.csv",row.names = FALSE)
+```

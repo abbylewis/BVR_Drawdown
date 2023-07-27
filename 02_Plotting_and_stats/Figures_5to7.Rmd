@@ -1,0 +1,477 @@
+---
+title: "Time series plots"
+author: "Abby Lewis and Adrienne Breef-Pilz"
+date: "2022-09-08"
+output: html_document
+---
+
+This file creates three summary time series plots that are in the main manuscript (Figure 5-7).
+
+To do so, this file loads physical, chemical, and biological data from other scripts. 
+
+TABLE OF CONTENTS:
+Code chunk 1: Load packages, set plot specifications
+Code chunk 2: Load data
+Code chunk 3: Compile Stats for Figure 5
+Code chunk 4: Make line plot of nutrients, phytos, DOC, and CO2 (Figure 5)
+Code chunk 5: Compile stats for Figure 6
+Code chunk 6: Make line plot of turbidity, euphotic zone, peak width, and peak depth (Figure 6)
+Code chunk 7: Compile stats for Figure 7
+Code chunk 8: Make line plot of metals data, DO, and thermocline depth (Figure 7)
+Code chunk 9: Make line plot of TN:TP ratio for SI
+
+
+Code chunk 1: Load packages, set plot specifications
+```{r Load packages and define drawdown dates, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+library(akima)
+library(colorRamps)
+library(ggh4x)
+library(patchwork)
+source("R/plot_facet.R")
+
+#Define drawdown dates
+lines_rect = data.frame(closed = as.Date("2022-06-28"), opened = as.Date("2022-05-19"), Year = 2022, year_class = "2022")
+
+#Set theme for plots
+theme_set(
+  theme_bw()+
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size=9),
+        strip.background = element_blank(),
+        strip.text.x = element_blank(),
+        legend.position = "none",
+        legend.title=element_blank(),
+        legend.background = element_blank(),
+        legend.key= element_blank(),
+        legend.spacing.y = unit(0, 'cm'),
+        legend.text=element_text(size=7)
+        )
+  )
+```
+
+
+Code chunk 2: Load data
+```{r Load and format chemistry data}
+#From Chem.Rmd
+chem_full = read.csv("Processed_data/Chem at 0.1m.csv")%>%
+  mutate(DateTime=as.Date(DateTime))
+
+# From physical metrics script
+thermo_depth = read.csv("Processed_data/thermocline_depth.csv")%>%
+  filter(year(Date)%in%c(2022,2021))
+
+# From CTD data processing script
+light = read.csv("Processed_data/attenuation_calc.csv")%>%
+  filter(year(Date)%in%c(2021,2022))
+
+ctd = read.csv("Processed_data/CTD at 0.1m.csv")%>%
+  filter(year(Date)%in%c(2021,2022))
+
+# From GHG script
+ghg = read.csv("Processed_data/GHG at 0.1m.csv")%>%
+  filter(year(DateTime)%in%c(2021,2022))
+
+# From metals script
+metals = read.csv("Processed_data/Metals at 0.1m.csv")%>%
+  filter(year(Date)%in%c(2021,2022))
+
+# From fluora script
+fluora_surface <- read.csv("Processed_data/Fluora_surface.csv")%>%
+  filter(year(DateTime)%in%c(2021,2022))
+
+cmax_depth = read.csv("Processed_data/FP_CmaxDepth.csv")%>%
+  filter(year(Date)%in%c(2021,2022))
+
+peak_width = read.csv("Processed_data/FP_PeakWidth.csv")%>%
+  filter(year(Date)%in%c(2021,2022))
+```
+
+
+Code chunk 3: Compile Stats for Figure 5
+```{r bloom effects stats}
+#Combine all data
+figure_5_data = chem_full%>%
+  select(DateTime, TP_ugL, TN_ugL,PO4_ugL,DOC_mgL,DIC_mgL,NO3NO2_ugL,NH4_ugL, NO3NO2_ugL)%>%
+  full_join(fluora_surface%>%mutate(DateTime = as.Date(DateTime)))%>%
+  full_join(ghg%>%mutate(DateTime = as.Date(DateTime)))%>%
+  select(DateTime, TP_ugL, TN_ugL,PO4_ugL,DOC_mgL,TotalConc_ugL,NH4_ugL,CO2_umolL,Bluegreens_ugL)%>%
+  pivot_longer(cols = c(TP_ugL, TN_ugL,PO4_ugL,DOC_mgL,TotalConc_ugL,CO2_umolL,NH4_ugL,Bluegreens_ugL))%>% 
+  filter(!is.na(value),
+         month(DateTime)>4,
+         month(DateTime)<9)%>%
+  mutate(Year = year(DateTime),
+         color = name,
+         name = ifelse(name%in%c("TotalConc_ugL","Bluegreens_ugL"),"Phyto",name), 
+         name = ifelse(name%in%c("TP_ugL","PO4_ugL"),"Phosphorus",name), 
+         name = ifelse(name%in%c("TN_ugL","NO3NO2_ugL","NH4_ugL"),"Nitrogen",name))%>%
+  mutate(name = factor(name, levels=c("Phosphorus","Nitrogen","Phyto","DOC_mgL","CO2_umolL")),
+         color = factor(color, levels=c("TP_ugL","PO4_ugL","TN_ugL","NH4_ugL","TotalConc_ugL","Bluegreens_ugL","DOC_mgL","CO2_umolL"),
+                        labels=c("Total P","Phosphate","Total N","Ammonium","Total phytoplankton", "Cyanobacteria", "DOC", "CO2")))
+
+#Calculate maxes
+maxes = figure_5_data%>%
+  group_by(name,color, Year)%>%
+  summarize(max_date = DateTime[which.max(value)],
+            min_date = DateTime[which.min(value)])%>%
+  filter(Year=="2022")%>%
+  mutate(max_date = ifelse(name %in% c("thermo","Zeu","DO_mgL"),min_date,max_date))
+
+maxes_sum = figure_5_data%>%
+  group_by(name,color, Year)%>%
+  summarize(max = max(value))%>%
+  group_by(name,color)%>%
+  mutate(dif = max[Year==2022]-max[Year==2021],
+         pct = (max[Year==2022]-max[Year==2021])/max[Year==2021]*100)
+
+#Stats
+maxes%>%
+  mutate(max_date=as.Date(max_date, origin="1970-01-01"))
+as.Date("2022-07-05")-as.Date("2022-06-27")
+as.Date("2022-07-11")-as.Date("2022-06-27")
+as.Date("2022-07-18")-as.Date("2022-06-27")
+as.numeric(maxes$max_date)
+```
+
+Code chunk 4: Make line plot of nutrients, phytos, DOC, and CO2 (Figure 5)
+```{r plots bloom effect}
+# Phosphorus
+p <- plot_facet(data = figure_5_data, 
+                var_name = "Phosphorus", 
+                xint_1 = 19170,
+                xint_2 = 19163,
+                color = c("black","black"),
+                ylab = expression(atop(NA, atop(textstyle("Phosphorus"), 
+                                                textstyle(paste("(",mu, "g/L)"))))),
+                legend = T,
+                legend.position = c(0.12,0.38),
+                strip.placement = "outside", 
+                strip.text.x = element_text(size = 12, face = "bold", vjust = 2),
+                legend.justification = c(0,0))
+
+# Nitrogen
+n <- plot_facet(data = figure_5_data, 
+                var_name = "Nitrogen", 
+                xint_1 = 19170,
+                xint_2 = 19191,
+                color = c("magenta4","magenta4"),
+                ylab = expression(atop(NA, atop(textstyle("Nitrogen"), 
+                                                textstyle(paste("(",mu, "g/L)"))))),
+                legend = T,
+                legend.position = c(0.12,0.38),
+                legend.justification = c(0,0))
+
+# Phytoplankton
+phyto <-plot_facet(data = figure_5_data, 
+                   var_name = "Phyto", 
+                   xint_1 = 19170,
+                   xint_2 = 19170,
+                   color = c("darkgreen","darkgreen"),
+                   ylab = expression(atop(NA, atop(textstyle("Phytoplankton"), 
+                                                   textstyle(paste("(",mu, "g/L)"))))),
+                   legend = T,
+                   legend.position = c(0.12,0.38),
+                   legend.justification = c(0,0))
+
+# DOC
+doc <- plot_facet(data = figure_5_data, 
+                  var_name = "DOC_mgL", 
+                  xint_1 = 19178,
+                  color = "#8E4412",
+                  ylab = expression(atop(NA, atop(textstyle("DOC"), 
+                                                  textstyle(paste("(mg/L)")))))
+                  )
+
+# CO2
+co2 <- plot_facet(data = figure_5_data, 
+                var_name = "CO2_umolL", 
+                xint_1 = 19184,
+                color = "blue",
+                ylab = expression(atop(NA, atop(textstyle("CO"[2]), 
+                                                textstyle(paste("(", mu, "mol/L)"))))),
+                axis.text.x = element_text(vjust = -1), 
+                axis.ticks = element_line(colour = "black"),
+               )
+
+figure_5 <- wrap_plots(p, n, phyto, doc, co2, nrow=5)
+
+ggsave("./Figs/Figure_5.jpeg", figure_5, dpi = 300, width = 6, height = 5, bg = "white")
+```
+
+
+Code chunk 5: Compile stats for Figure 6
+```{r phytos stats}
+figure_6_data = fluora_surface%>%
+  mutate(DateTime = as.Date(DateTime))%>%
+  full_join(light%>%mutate(DateTime = as.Date(Date))%>%select(-Date))%>%
+  full_join(ctd%>%mutate(DateTime = as.Date(Date))%>%select(-Date,-Year,-Depth_m))%>%
+  full_join(cmax_depth%>%mutate(DateTime = as.Date(Date))%>%select(-Date))%>%
+  full_join(peak_width%>%mutate(DateTime = as.Date(Date))%>%select(-Date))%>%
+  select(DateTime, Turbidity_NTU, Zeu, CmaxDepth_TotalConc_ugL, CmaxDepth_Bluegreens_ugL, PeakWidth_TotalConc_m, PeakWidth_Bluegreens_m)%>%
+  pivot_longer(cols = c(Turbidity_NTU, Zeu, CmaxDepth_TotalConc_ugL, CmaxDepth_Bluegreens_ugL, PeakWidth_TotalConc_m, PeakWidth_Bluegreens_m))%>%
+  filter(!is.na(value),
+         month(DateTime)>4,
+         month(DateTime)<9)%>%
+  mutate(Year = year(DateTime),
+         color = ifelse(name%in%c("CmaxDepth_TotalConc_ugL", "PeakWidth_TotalConc_m"),
+                        "TotalConc_ugL",
+                        ifelse(name%in%c("PeakWidth_Bluegreens_m", "CmaxDepth_Bluegreens_ugL"),
+                               "Bluegreens_ugL",name)),
+         name = ifelse(name%in%c("CmaxDepth_TotalConc_ugL", "CmaxDepth_Bluegreens_ugL"),
+                       "Cmax_depth", name),
+         name = ifelse(name%in%c("PeakWidth_TotalConc_m", "PeakWidth_Bluegreens_m"),
+                       "PeakWidth",name),
+         color = factor(color, 
+                        levels = c("Zeu","TotalConc_ugL","Bluegreens_ugL","Turbidity_NTU"),
+                        labels = c("Zeu","Total phytoplankton","Cyanobacteria","Turbidity_NTU"))
+         )
+
+#Calculate maxes
+maxes = figure_6_data%>%
+  group_by(name,color, Year)%>%
+  summarize(max_date = DateTime[which.max(value)],
+            min_date = DateTime[which.min(value)])%>%
+  filter(Year=="2022")%>%
+  mutate(max_date = ifelse(name %in% c("thermo","Zeu","DO_mgL","Cmax_depth", "PeakWidth"),min_date,max_date))
+
+#Stats
+figure_6_data%>%
+  group_by(name,color, Year)%>%
+  summarize(max_date = DateTime[which.max(value)],
+            max = max(value),
+            min_date = DateTime[which.min(value)],
+            min = min(value))%>%
+  mutate(max_date = ifelse(name %in% c("thermo","Zeu","DO_mgL","Cmax_depth", "PeakWidth"),min_date,max_date),
+         max = ifelse(name %in% c("thermo","Zeu","DO_mgL","Cmax_depth", "PeakWidth"),min,max))%>%
+  group_by(name,color)%>%
+  mutate(pct = (max[Year==2022]-max[Year==2021])/max[Year==2021]*100)
+```
+
+Code chunk 6: Make line plot of turbidity, euphotic zone, peak width, and peak depth (Figure 6)
+```{r phytos with legend plot}
+#PLOT
+# plot each one individual to plots and then merge them at the end
+turb <- plot_facet(data = figure_6_data, 
+                   var_name = "Turbidity_NTU", 
+                   xint_1 = 19178,
+                   color = "black",
+                   ylab = expression(atop(NA, atop(textstyle("Turbidity"), 
+                                                   textstyle("(NTU)")))),
+                   strip.placement = "outside", 
+                   strip.text.x = element_text(size = 12, face = "bold", vjust = 2))
+
+# Plots Euphotic Zone
+zeu <- plot_facet(data = figure_6_data, 
+                  var_name = "Zeu", 
+                  xint_1 = 19178,
+                  color = "goldenrod",
+                  reverse = T,
+                  ylab = expression(atop(NA, atop(textstyle("Euphotic zone"), 
+                                                  textstyle("depth (m)")))))
+
+# Cmax
+cmax <- plot_facet(data = figure_6_data, 
+                   var_name = "Cmax_depth", 
+                   xint_1 = 19163,
+                   xint_2 = 19178,
+                   reverse = T,
+                   color = c("darkgreen","darkgreen"),
+                   ylab = expression(atop(NA, atop(textstyle("C"["max"]), 
+                                                   textstyle("depth (m)")))),
+                   legend = T,
+                   legend.position = c(0.20,0.66))
+
+# Peak width
+width <- plot_facet(data = figure_6_data, 
+                    var_name = "PeakWidth", 
+                    xint_1 = 19156,
+                    xint_2 = 19163,
+                    color = c("darkgreen","darkgreen"),
+                    ylab = expression(atop(NA, atop(textstyle("Peak width"), 
+                                                    textstyle("(m)")))),
+                    legend = T,
+                    legend.position = c(0.30,0.77),
+                    axis.text.x = element_text(vjust = -1), 
+                    axis.ticks = element_line(colour = "black"))
+
+figure_6 <- wrap_plots(turb, zeu, cmax, width, nrow=4)
+
+ggsave("./Figs/Figure_6.jpeg", figure_6, dpi = 300, width = 6, height = 4, bg = "white")
+```
+
+
+Code chunk 7: Compile stats for Figure 7
+```{r Stats for Oxygen figure}
+#combine relevant data
+figure_7_data = thermo_depth%>%
+  mutate(DateTime = as.Date(Date))%>%
+  select(-Date)%>%
+  full_join(ctd%>%mutate(DateTime = as.Date(Date))%>%select(-Date,-Year,-Depth_m))%>%
+  full_join(metals%>%mutate(DateTime = as.Date(Date))%>%select(-Date,-Date_22))%>%
+  select(DateTime, TFe_mgL,TMn_mgL,SFe_mgL,SMn_mgL,DOsat_percent,thermo)%>%
+  pivot_longer(cols = c(TFe_mgL,TMn_mgL,SFe_mgL,SMn_mgL,DOsat_percent,thermo))%>% #Pivot for facet wrap
+  filter(!is.na(value),
+         month(DateTime)>4,
+         month(DateTime)<9)%>%
+  mutate(Year = year(DateTime),
+         color = name,
+         name = ifelse(name%in%c("SFe_mgL","TFe_mgL"),"Fe_mgL",name),
+         name = ifelse(name%in%c("SMn_mgL","TMn_mgL"),"Mn_mgL",name),
+         color = factor(color, 
+                        levels = c("thermo","DOsat_percent","TFe_mgL","TMn_mgL","SFe_mgL","SMn_mgL"),
+                        labels = c("thermo","DOsat_percent","Total Fe","Total Mn","Soluble Fe","Soluble Mn")))
+
+#Calculate maximum values
+maxes = figure_7_data%>%
+  group_by(name, color,Year)%>%
+  summarize(max_date = DateTime[which.max(value)],
+            min_date = DateTime[which.min(value)])%>%
+  filter(Year=="2022")%>%
+  mutate(max_date = ifelse(name %in% c("thermo","Zeu","DO_mgL","DOsat_percent"),min_date,max_date))
+
+maxes_sum = figure_7_data%>%
+  group_by(name,color, Year)%>%
+  summarize(max = max(value),
+            max_date = DateTime[which.max(value)],
+            min_date = DateTime[which.min(value)])%>%
+  group_by(name,color)%>%
+  mutate(dif = max[Year==2022]-max[Year==2021],
+         pct = (max[Year==2022]-max[Year==2021])/max[Year==2021]*100,
+         date_dif = max_date[Year==2022]-(max_date[Year==2021]+365))
+
+mins_sum = figure_7_data%>%
+  group_by(name,color, Year)%>%
+  summarize(min = min(value),
+            min_date = DateTime[which.min(value)],
+            min_date = DateTime[which.min(value)])%>%
+  group_by(name,color)%>%
+  mutate(dif = min[Year==2022]-min[Year==2021],
+         pct = (min[Year==2022]-min[Year==2021])/min[Year==2021]*100,
+         date_dif = min_date[Year==2022]-(min_date[Year==2021]+365))
+
+#Stats
+figure_7_data%>%
+  group_by(name, color,Year)%>%
+  summarize(max_date = DateTime[which.max(value)],
+            max = max(value),
+            min_date = DateTime[which.min(value)],
+            min = min(value))%>%
+  mutate(max_date = ifelse(name %in% c("thermo","Zeu","DO_mgL","DOsat_percent"),min_date,max_date))
+```
+
+
+Code chunk 8: Make line plot of metals data, DO, and thermocline depth (Figure 7)
+```{r Plot for oxygen Figure}
+thermo <- plot_facet(data = figure_7_data, 
+                     var_name = "thermo", 
+                     xint_1 = 19177, 
+                     color = "darkblue",
+                     ylab = "Thermocline \ndepth (m)",
+                     reverse = T,
+                     strip.placement = "outside", 
+                     strip.text.x = element_text(size = 12, face = "bold", vjust = 2))
+
+do_sat <- plot_facet(data = figure_7_data, 
+                     var_name = "DOsat_percent", 
+                     xint_1 = 19184,
+                     color = "cyan4",
+                     ylab = "Surface DO\n(% saturation)")
+
+# Iron
+fe <- plot_facet(data = figure_7_data, 
+                 var_name = "Fe_mgL", 
+                 xint_1 = 19184,
+                 xint_2 = 19178,
+                 color = c("lightsalmon","lightsalmon"),
+                 ylab = "Fe (mg/L)",
+                 legend = T,
+                 legend.position = c(0.18,0.66))
+
+# Mn
+mn <- plot_facet(data = figure_7_data, 
+                 var_name = "Mn_mgL", 
+                 xint_1 = 19184,
+                 xint_2 = 19170,
+                 color = c("coral4","coral4"),
+                 ylab = "Mn (mg/L)",
+                 legend = T,
+                 axis.text.x = element_text(vjust = -1), 
+                 axis.ticks = element_line(colour = "black"), 
+                 legend.position = c(0.18,0.66))
+
+figure_7 <- wrap_plots(thermo, do_sat, fe, mn, nrow=4)
+
+ggsave(file="./Figs/Figure_7.jpeg",figure_7, dpi = 300, width = 6, height = 4, bg = "white")
+ 
+```
+
+
+Code chunk 9: Make line plot of TN:TP ratio for SI
+```{r}
+#Combine all data
+tntp = chem_full%>%
+  filter(Depth_m ==0.1)%>%
+  select(DateTime, TP_ugL, TN_ugL)%>%
+  full_join(fluora_surface%>%mutate(DateTime = as.Date(DateTime)))%>%
+  mutate(TNTP = TN_ugL/TP_ugL)%>%
+  select(DateTime, TNTP, TotalConc_ugL, Bluegreens_ugL)%>%
+  pivot_longer(cols = c(TNTP, TotalConc_ugL, Bluegreens_ugL))%>% #pivot for facet wrap
+  filter(!is.na(value),
+         month(DateTime)>4,
+         month(DateTime)<9)%>%
+  mutate(Year = year(DateTime),
+         color = name,
+         name = ifelse(name%in%c("TotalConc_ugL","Bluegreens_ugL"),"Phyto",name))%>% #Re-format to get cyanos on the same plot as totals
+  mutate(name = factor(name, levels=c("TNTP","Phyto")),
+         color = factor(color, levels=c("TotalConc_ugL","Bluegreens_ugL","TNTP"),
+                        labels=c("Total phytoplankton", "Cyanobacteria","TNTP"))) #Re-label colors
+
+#Calculate maxes
+maxes = tntp%>%
+  group_by(name,color, Year)%>%
+  summarize(max_date = DateTime[which.max(value)],
+            min_date = DateTime[which.min(value)])%>%
+  filter(Year=="2022")%>%
+  mutate(max_date = ifelse(name %in% c("thermo","Zeu","DO_mgL"),min_date,max_date))
+
+maxes_sum = tntp%>%
+  group_by(name,color, Year)%>%
+  summarize(max = max(value))%>%
+  group_by(name,color)%>%
+  mutate(dif = max[Year==2022]-max[Year==2021],
+         pct = (max[Year==2022]-max[Year==2021])/max[Year==2021]*100)
+
+#Stats
+maxes%>%
+  mutate(max_date=as.Date(max_date, origin="1970-01-01"))
+as.numeric(maxes$max_date)
+
+#Specify colors
+my_colors = c("darkgreen","darkgreen","black")
+
+tntp%>%
+  ggplot()+
+  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
+  geom_point(aes(y = value, x = DateTime,color = color))+
+  geom_line(aes(y = value, lty=color,x = DateTime,color = color))+
+  geom_vline(aes(xintercept = max_date, color = color), data = maxes, lwd = 2, alpha = 0.5, show.legend = F)+
+  scale_linetype_manual(values = c("solid","11","solid"))+
+  scale_color_manual(values = my_colors)+
+  facet_grid(rows = vars(name), cols = vars(Year), scales = "free", switch = "y")+
+  theme(strip.placement = "outside", 
+        strip.text.x = element_text(size = 12, face = "bold"),
+        legend.position = "bottom")+
+  guides(color = guide_legend(byrow = TRUE,keyheight = 0.75))+
+  ylab("")+
+  force_panelsizes(rows = unit(.75, "in"),
+                   cols = unit(2.5, "in"))
+ggsave("./Figs/SI_TNTP.jpeg", dpi = 300, width = 6.5, height = 3)
+
+before = tntp$value[tntp$DateTime=="2022-05-23"&tntp$name=="TNTP"]
+after = tntp$value[tntp$DateTime=="2022-06-27"&tntp$name=="TNTP"]
+(after-before)/before*100
+```

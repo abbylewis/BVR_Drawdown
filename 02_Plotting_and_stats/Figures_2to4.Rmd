@@ -1,0 +1,498 @@
+---
+title: "Physics"
+author: "Abby Lewis"
+date: "2022-08-30"
+output: html_document
+---
+
+This file uses thermistor and meteorological data to create lake physics plots (Figures 2-4).
+
+Step 1: Load packages and data, and identify drawdown dates for figures
+Step 2: Plot lake physics metrics (Schmidt, BF, VW temp, surface temp)
+Step 3: Plot meteorology
+Step 4: Plot volume, divided by layer
+Step 5: Create a heatmap of water temperature over time
+Step 6: Create a heatmap of DO over time
+Step 7: Stats for paper
+
+
+Step 1: Load packages and data, and identify drawdown dates for figures
+```{r setup, include=FALSE}
+# Load packages
+library(tidyverse)
+library(lubridate)
+library(akima)
+library(colorRamps)
+library(zoo)
+library(ggpubr)
+library(cowplot)
+source("../R/thermo.depth.density.R")
+
+# Load data
+schmidt_df <- read_csv("../Processed_data/Schmidt.csv")
+buoy_max <- read_csv("../Processed_data/BF.csv")
+vw_temp_df <- read_csv("../Processed_data/VW_temp.csv")
+cat_long <- read_csv("../Processed_data/BVR_longoutput.csv")%>%
+  filter(Sensor_depth>0)
+meta_ratio <- read_csv("../Processed_data/meta_ratio.csv")
+weather_sum  <- read_csv("../Processed_data/Weather_sum.csv")
+thermo_raw <- read_csv("../Processed_data/thermocline_depth.csv")
+
+# Set lines
+lines = data.frame(Dates = as.Date(c("2022-06-28", "2022-05-19")), desc = c("closed","opened"), type = c("close","open"), status = c("init","init"), Year = 2022, year_class = "2022")
+# Re-format for rectangle instead of discrete lines
+lines_rect = lines%>%
+  select(-type)%>%
+  pivot_wider(names_from = desc, values_from = Dates)
+```
+
+
+Step 2: Plot lake physics metrics (Schmidt, BF, VW temp, surface temp)
+```{r}
+schmidt_fig = schmidt_df%>%
+  filter(Year %in% c(2021,2022),
+         !is.na(Schmidt))%>%
+  mutate(Year = as.factor(Year))%>%
+  ggplot()+
+  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
+  geom_point(aes(x = Date_22,y = Schmidt, fill = Year, color = Year), shape = 21, stroke = .5, size = 1.5)+
+  scale_fill_manual(values = c("black","#00F7FF"))+
+  scale_color_manual(values = c("black","#0800FA"))+
+  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
+  ylab("Schmidt stability (J/m^2)")+
+  theme_bw()+
+  scale_x_date(date_breaks = "2 month", date_labels =  "%b")+
+  theme(axis.title.x = element_blank(),
+        legend.position = "none")
+schmidt_fig
+
+buoy_fig = buoy_max%>%
+  mutate(Year = as.factor(year(Date)))%>%
+  filter(Year %in% c(2021,2022))%>%
+  ggplot()+
+  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
+  geom_point(aes(x = Date_22, y= max, color = Year, fill = Year),shape = 21, stroke = .5, size = 1.5)+
+  scale_fill_manual(values = c("black","#00F7FF"))+
+  scale_color_manual(values = c("black","#0800FA"))+
+  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
+  theme_bw()+
+  ylab("Maximum buoyancy\nfrequency (1/s)")+
+  scale_x_date(date_breaks = "2 month", date_labels =  "%b")+
+  theme(axis.title.x = element_blank(),
+        legend.position = "none")
+buoy_fig
+
+water = vw_temp_df%>%
+  filter(Year %in% c(2021,2022),
+         !is.na(vw_temp))%>%
+  mutate(Year = year(Date),
+         Year = as.factor(Year))%>%
+  ggplot()+
+  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
+  geom_point(aes(x = Date_22, y = vw_temp, fill = Year, color = Year),shape = 21, stroke = .5, size = 1.5)+
+  scale_fill_manual(values = c("black","#00F7FF"))+
+  scale_color_manual(values = c("black","#0800FA"))+
+  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
+  ylab("Volume-weighted\nwater temperature (ºC)")+
+  theme_bw()+
+  scale_x_date(date_breaks = "2 month", date_labels =  "%b")+
+  theme(axis.title.x = element_blank(),
+        legend.position = "none")
+water
+
+surf = cat_long%>%
+  mutate(Date = as.Date(DateTime),
+         Year = year(Date))%>%
+  filter(Sensor_depth>0)%>%
+  group_by(Date, Year)%>%
+  dplyr::summarize(Reading = Reading[which.min(Sensor_depth)],
+            Sensor_depth = mean(Reservoir_depth))%>%
+  mutate(Date_22 = Date,
+         Year = year(Date))%>%
+  filter(Year %in% c(2021,2022))
+year(surf$Date_22) = 2022
+
+surf_plot_save = surf%>%
+  mutate(Year = as.factor(Year))%>%
+  ggplot()+
+  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
+  geom_point(aes(x = Date_22, y = Reading, fill = Year, color = Year), shape = 21, stroke = .5, size = 1.5)+
+  scale_fill_manual(values = c("black","#00F7FF"))+
+  scale_color_manual(values = c("black","#0800FA"))+
+  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
+  ylab("Surface water temperature (ºC)")+
+  theme_bw()+
+  scale_x_date(date_breaks = "2 month", date_labels =  "%b")+
+  theme(axis.title.x = element_blank())+
+  theme(legend.position = "none")
+surf_plot_save
+```
+
+
+Step 3: Plot meteorology
+```{r}
+cum_rain = weather_sum%>%
+  group_by(Year)%>%
+  mutate(cum_rain_mm = cumsum(Rain_Total_mm),
+         Year = as.factor(Year))
+
+temp = weather_sum%>%
+  mutate(Year = as.factor(Year))%>%
+  ggplot()+
+  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
+  geom_point(aes(x = Date_22, y = AirTemp_C_Average, fill = Year, color = Year), shape = 21, stroke = .5, size = 1.5)+
+  scale_fill_manual(values = c("black","#00F7FF"))+
+  scale_color_manual(values = c("black","#0800FA"))+
+  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
+  ylab("Air temperature (ºC)")+
+  theme_bw()+
+  scale_x_date(date_breaks = "2 month", date_labels =  "%b")+
+  theme(axis.title.x = element_blank())
+
+rain_cum = cum_rain%>%
+  ggplot()+
+  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
+  geom_line(aes(x = Date_22, y = cum_rain_mm, color = Year, color = Year),size = 1.5)+
+  scale_color_manual(values = c("black","#0800FA"))+
+  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
+  scale_linetype_manual(values = c("solid","dashed"))+
+  ylab("Cumulative rain (mm)")+
+  theme_bw()+
+  scale_x_date(date_breaks = "2 month", date_labels =  "%b")+
+  theme(axis.title.x = element_blank())
+
+jpeg("../Figs/rain_cum.jpg",res = 300, units = "in",width = 4, height = 3)
+rain_cum
+dev.off()
+
+air_temp_plot = weather_sum%>%
+  mutate(Year = year(Date),
+         Air_Temp = AirTemp_C_Average,
+         Date_22 = as.Date(Date_22))%>%
+  filter(Year %in% c(2021,2022),
+         !is.na(AirTemp_C_Average))%>%
+  mutate(Year = as.factor(Year))%>%
+  group_by(Date_22,Year)%>%
+  summarize(Air_Temp = mean(Air_Temp))%>%
+  arrange(Year,Date_22)
+
+air_temp_plot%>%
+  filter(Date_22>="2022-05-19"&Date_22<="2022-07-01")%>%
+  group_by(Year)%>%
+  summarize(mean = mean(Air_Temp),
+            sd = sd(Air_Temp))
+
+legend = get_legend(temp)
+jpeg("../Figs/Figure_4.jpg",res = 300, units = "in",width = 8, height = 6)
+plot_grid(temp+theme(legend.position = "none"),surf_plot_save,water,buoy_fig,schmidt_fig,legend, align = "hv",labels = list("a","b","c","d","e",""),nrow=2,ncol=3,axis = "rltb")
+dev.off()
+```
+
+
+Step 4: Plot volume, divided by layer
+```{r}
+jpeg("../Figs/Figure_2c.jpeg",width = 4.5, height = 4.5, units = "in", res = 300)
+meta_ratio%>%
+  mutate(Year=as.factor(year(Date)))%>%
+  filter(!Year==2020,
+         month(Date)>=5,
+         month(Date)<10)%>%
+  dplyr::select(Date_22, Year, epi_volume,hypo_volume)%>%
+  pivot_longer(cols = c(epi_volume,hypo_volume))%>%
+  mutate(name = ifelse(name=="epi_volume","Epilimnetic volume","Hypolimnetic volume"),
+         name = factor(name,levels = c("Epilimnetic volume","Hypolimnetic volume")))%>%
+  ggplot()+
+  scale_fill_manual(values = c("#77c7fc","#104466"))+
+  geom_area(aes(x = Date_22, y = value/1000, fill = name))+
+  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "black", data = lines_rect, alpha = 0.15)+
+  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
+  scale_linetype_manual(values = c("solid","dashed"))+
+  facet_grid(rows = ~Year, scales = "free_x", space = "free_x")+
+  theme_bw()+
+  ylab(bquote('Volume'~(m^3)))+
+  theme(axis.title.x = element_blank(),
+        legend.title = element_blank(),
+        legend.position = "bottom",
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+dev.off()
+```
+
+
+Step 5: Create a heatmap of water temperature over time
+```{r}
+var = c("Reading") #Temp_C
+
+filt_no_surf = cat_long%>%
+  mutate(Date = as.Date(DateTime),
+         Year = year(Date),
+         Height = Reservoir_depth-Sensor_depth,
+         Rounded_depth_tenth = round(Height,1))%>%
+  filter(!is.na(get(var)),
+         Reservoir == "BVR")%>%
+  ungroup()%>%
+  dplyr::select(Date, Rounded_depth_tenth,Reading, Year)%>%
+  group_by(Year, Date, Rounded_depth_tenth)%>%
+  dplyr::summarize(Reading=mean(Reading, na.rm = T))%>%
+  dplyr::rename(Sensor_depth = Rounded_depth_tenth)
+
+surf = cat_long%>%
+  mutate(Date = as.Date(DateTime),
+         Year = year(Date))%>%
+  group_by(Date, Year)%>%
+  dplyr::summarize(Reading = Reading[which.min(Sensor_depth)],
+            Sensor_depth = mean(Reservoir_depth))
+
+bottom = cat_long%>%
+  mutate(Date = as.Date(DateTime),
+         Year = year(Date))%>%
+  group_by(Date, Year)%>%
+  dplyr::summarize(Reading = Reading[which.max(Sensor_depth)],
+            Sensor_depth = 0)
+  
+filt = filt_no_surf%>%
+  full_join(surf)%>%
+  full_join(bottom)
+
+depth_sum = cat_long%>%
+  mutate(Date = as.Date(DateTime),
+         Year = year(Date))%>%
+  filter(Reservoir == "BVR")%>%
+  ungroup()%>%
+  dplyr::select(Date, Reservoir_depth,Year)%>%
+  group_by(Year, Date)%>%
+  dplyr::summarize(Reservoir_depth=mean(Reservoir_depth, na.rm = T))%>%
+  ungroup()%>%
+  filter(!Year == 2020)%>%
+  mutate(max = max(Reservoir_depth))
+
+Years = c(2021,2022)
+interp = data.frame(x = NA, y = NA, z = NA, Site = NA)
+for(year in Years){
+    bvr<- filt%>%
+      filter(Year == year)%>%
+      ungroup()%>%
+      dplyr::mutate(random = sample(1:n(),n()))%>%
+      arrange(random)%>%
+      filter(!is.na(Reading))
+    
+    if(nrow(bvr)>0){
+      bvr_interp <- interp2xyz(interp(bvr$Date,bvr$Sensor_depth,bvr[[var]],xo = seq(min(bvr$Date), max(bvr$Date), 1),yo = seq(min(bvr$Sensor_depth), max(bvr$Sensor_depth), by = .05), duplicate = "mean"),data.frame = T)
+      interp = interp%>%
+        full_join(bvr_interp)
+    }
+    
+}
+
+sensor_depth_plot = filt_no_surf%>%
+  filter(Year%in% c(2021,2022))%>%
+  group_by(Date)%>%
+  filter(length(unique(Sensor_depth))<=11)%>%
+  ungroup()%>%
+  select(Year,Sensor_depth)%>%
+  unique()%>%
+  mutate(Date=as.Date(paste0(Year,"-01-01")))
+
+
+#Heatmap
+jpeg(paste0("../Figs/BVR_catwalk_heatmap_2022.jpeg"),width = 8, height = 4, units = "in", res = 300)
+water_temp = interp%>%
+  mutate(x = as.Date(x, origin = "1970-01-01"),
+         Year = year(x))%>%
+  filter(!is.na(z))%>%
+  ggplot()+
+  geom_raster(aes(x=x, y=y,fill = z))+
+  geom_ribbon(data = depth_sum, aes(x = Date, ymin= Reservoir_depth, ymax = max), fill = "white", color = "black",lwd=.3)+
+  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "black", data = lines_rect, alpha = 0.15)+
+  geom_line(data = thermo_raw%>%
+              mutate(Year=year(Date))%>%
+              filter(Year%in%c(2021,2022)), aes(x = Date, y = Reservoir_depth-thermo, lty = "Thermocline"), lwd = .2)+
+  geom_hline(aes(yintercept = 6.6, lty = "Out-take pipe"), alpha = 0.3)+
+  labs(y = "Height above sediments (m)")+
+  scale_x_date(expand = c(0,0))+
+  scale_y_continuous(expand = c(0,0))+
+  theme(panel.border = element_rect(fill = NA),
+        axis.title.x=element_blank())+
+  facet_grid(cols = vars(Year),
+             scales = "free",
+             space = "free"
+             )+
+  labs(color = "")+
+  geom_point(data = sensor_depth_plot, aes(x = Date, y = Sensor_depth), shape = 23, fill = "black", color = "white", size  =2.5)+
+  geom_vline(data=lines,aes(xintercept = Dates), show.legend = F)+
+  scale_linetype_manual(values = c("solid","84"),limits = c("Thermocline","Out-take pipe"),  name= NULL)+
+  scale_fill_gradientn(name = "Water temperature\n(°C)",
+                       limits = c(-1, 30),
+                       colours = c("#313695", "#4575b4", "#74add1",
+                                   "#abd9e9", "#e0f3f8", "#ffffbf", "#fee090",
+                                   "#fdae61", "#f46d43", "#d73027", "#a50026" ))
+print(water_temp)
+dev.off()
+```
+
+
+Step 6: Create a heatmap of DO over time
+```{r}
+df.final <- read.csv("../Processed_data/CTD trimmed.csv")%>%
+  mutate(Date=as.Date(Date))
+
+sensor_depth = cat_long%>%
+  mutate(Year = year(DateTime),
+         Date = as.Date(DateTime),
+         max = max(Reservoir_depth))%>%
+  filter(Reservoir_depth > 5,
+         Year %in% c(2021,2022))%>%
+  group_by(Date,Year)%>%
+  summarize(Reservoir_depth = max(Reservoir_depth),
+            max = unique(max))%>%
+  select(Date,Reservoir_depth,max,Year)
+
+ctd_sensor <- df.final%>%
+  left_join(sensor_depth%>%select(-max))%>%
+  group_by(Date)%>%
+  mutate(max_ctd = max(Depth_m),
+         dif = Reservoir_depth-max_ctd)%>%
+  mutate(Depth_m = Depth_m_sed + dif)%>%
+  filter(!is.na(Depth_m))
+
+bottom <- df.final%>%
+  left_join(sensor_depth%>%select(-max))%>%
+  filter(!is.na(Reservoir_depth))%>%
+  group_by(Date)%>%
+  filter(Depth_m_sed == min(Depth_m_sed))%>%
+  mutate(Depth_m = 0)
+  
+ctd_adj_depth <- ctd_sensor%>%
+  full_join(bottom)
+
+lines <- data.frame(Dates = as.Date(c("2022-06-28", "2022-05-19","2022-05-28", "2022-07-01")), desc = c("closed","opened", "decreasing", "stable"), type = c("close","open","open","close"), status = c("init","init","final","final"), Year = 2022)
+lines <- lines%>%
+  filter(status == "init")
+#Re-format for rectangle instead of discrete lines
+lines_rect <- lines%>%
+  select(-type)%>%
+  pivot_wider(names_from = desc, values_from = Dates)
+
+vars <- c("DO_mgL")
+names <- c("Dissolved Oxygen\n(mg/L)")
+Years <- 2021:2022
+Sites <- c(50)
+
+custom_heatmap_palette <- c("#313695", "#4575b4", "#74add1","#abd9e9", "#e0f3f8", "#ffffbf", "#fee090","#fdae61", "#f46d43", "#d73027", "#a50026")
+
+for(i in 1:length(vars)){
+  var <- vars[i]
+  interp <- data.frame(x = NA, y = NA, z = NA, Site = NA)
+  for(site in Sites){
+    for(year in Years){
+      bvr <- ctd_adj_depth%>%
+        mutate(Year = year(Date),
+               Date = as.Date(Date))%>%
+        filter(Reservoir == "BVR",
+               !is.na(get(var)),
+               !is.na(Depth_m),
+               Site %in% Sites,
+               Year %in% Years)%>%
+        group_by(Site)%>%
+        mutate(max = max(Depth_m))
+      bvr_site <- bvr%>%
+        filter(Site == site,
+               Year == year)
+      if(nrow(bvr_site)>0){
+        bvr_interp <- interp2xyz(interp(bvr_site$Date,bvr_site$Depth_m,bvr_site[[var]],
+                                        xo = seq(min(bvr_site$Date), max(bvr_site$Date), .1),
+                                        yo = seq(min(bvr_site$Depth_m), max(bvr_site$Depth_m), 
+                                                 by = .01), 
+                                        duplicate = "mean"),data.frame = T)
+        interp <- interp%>%
+          full_join(bvr_interp%>%mutate(Site=site))
+      }
+    }
+  }
+  interp <- interp%>%
+    filter(!is.na(Site))
+  
+  bvr_maxes <- bvr%>%
+    group_by(Site)%>%
+    summarize(max = unique(max))
+  
+  #Heatmap
+  jpeg(paste0("../Figs/BVR_",var,"_heatmap_2022.jpeg"),width = 8, height = 4, units = "in", res = 300)
+  ctd_plot <- interp%>%
+    mutate(x = as.Date(x, origin = "1970-01-01"),
+           Year = year(x))%>%
+    ggplot()+
+    geom_raster(aes(x=x,fill = z, y=y))+
+    scale_y_continuous(expand = c(0,0),limits = c(0, NA))+
+    labs(y = "Height above sediments (m)")+
+    scale_fill_gradientn(colours = if(var%in%c("DO_mgL","DO_pSat","ORP_mV")){rev(custom_heatmap_palette)}else{custom_heatmap_palette}, na.value="white", name = names[i])+
+    geom_ribbon(data = sensor_depth, aes(x = Date, ymin= Reservoir_depth, ymax = max), fill = "white",color = "black",lwd=.2)+
+    geom_point(data = bvr, aes(x = Date, y = max), shape = 25, fill = "black", color = "white", size  =2)+
+    geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "black", data = lines_rect, alpha = 0.15)+
+    geom_vline(data=lines,aes(xintercept = Dates), show.legend = F)+
+    geom_hline(aes(yintercept = 6.6, lty = "Out-take pipe"), alpha = 0.3, lty = "84")+
+    scale_x_date(expand = c(0,0))+
+    theme(panel.border = element_rect(fill = NA),
+          panel.background = element_rect(fill = "white"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.title.x=element_blank())+
+    facet_grid(cols = vars(Year),
+               scales = "free",
+               space = "free_y")
+  print(ctd_plot)
+  dev.off()
+}
+
+jpeg(paste0("../Figs/Figure_3.jpeg"),width = 6, height = 6, units = "in", res = 300)
+ggarrange(water_temp,ctd_plot, nrow=2, align = "hv", labels = "auto")
+dev.off()
+```
+
+
+Step 7: Stats for paper
+```{r}
+#Turnover dates
+bot = catwalk_format%>%
+  group_by(Date)%>%
+  dplyr::summarize(Reading = Reading[which.max(Sensor_depth)])%>%
+  mutate(Date_22 = Date,
+         Year = year(Date))%>%
+  filter(Year %in% c(2021,2022))
+year(bot$Date_22) = 2022
+
+surf%>%
+  rename(surf_temp = Reading)%>%
+  select(-Sensor_depth)%>%
+  left_join(bot%>%rename(bot_temp=Reading))%>%
+  mutate(Year=year(Date))%>%
+  filter(month(Date)>7)%>%
+  group_by(Year)%>%
+  arrange(Date)%>%
+  summarize(turnover=first(Date[surf_temp-bot_temp<1]))
+
+#How much earlier was turnover?
+yday("2022-11-6")-yday("2021-10-19")
+
+vw_temp_df%>%
+  filter(month(Date)%in%c(7))%>%
+  group_by(Year)%>%
+  dplyr::summarise(mean = mean(vw_temp, na.rm = T),
+                   sd = sd(vw_temp, na.rm = T))
+22.44-19.70
+
+buoy_max%>%
+  filter(month(Date)%in%c(7))%>%
+  mutate(Year = year(Date))%>%
+  group_by(Year)%>%
+  dplyr::summarise(mean = mean(max, na.rm = T),
+                   sd = sd(max, na.rm = T))
+(0.01260153-0.01007704)/0.01007704
+
+schmidt_df%>%
+  filter(month(Date)%in%c(7))%>%
+  group_by(Year)%>%
+  dplyr::summarise(mean = mean(Schmidt, na.rm = T),
+                   sd = sd(Schmidt, na.rm = T))
+(124.55-66.87)/124.55
+```

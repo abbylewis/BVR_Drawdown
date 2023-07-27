@@ -1,0 +1,67 @@
+---
+title: "CTD"
+author: "Abby Lewis"
+date: "2023-07-26"
+output: html_document
+---
+
+This script creates two supplemental figures of fish habitat suitability (TDO3 and ZDO3)
+
+
+Step 1: Load data
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+
+df.final <- read_csv("../Processed_data/CTD trimmed.csv")
+```
+
+
+Step 2: Plot fish habitat suitability metrics
+```{r}
+oxy <- df.final%>%
+  filter(DO_mgL<3)%>%
+  group_by(Date,Site)%>%
+  summarize(tdo3 = Temp_C[which.min(Depth_m)],
+            Depth_m = min(Depth_m))%>%
+  mutate(Year = as.factor(year(Date)),
+         Date_22 = Date)%>%
+  filter(year(Date)%in% c(2021,2022))
+year(oxy$Date_22)=2022
+
+lines_rect <- data.frame(closed = as.Date("2022-06-28"), opened = as.Date("2022-05-19"), Year = 2022, year_class = "2022")
+
+jpeg("../Figs/SI_TDO3.jpg",res = 300, units = "in",width = 6, height = 4)
+oxy%>%
+  filter(Site==50,
+         month(Date)>4,
+         month(Date)<9)%>%
+  ggplot()+
+  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),
+              fill = "grey40", data = lines_rect, alpha = 0.2)+
+  geom_point(aes(x = Date_22, y = tdo3))+
+  geom_line(aes(x = Date_22, y = tdo3, lty = Year))+
+  ylab("Temperature at which DO > 3")+
+  scale_linetype_manual(values = c("solid","dashed"))+
+  theme_bw()+
+  theme(axis.title.x = element_blank())
+dev.off()
+
+jpeg("../Figs/SI_Depth_DO3.jpg",res = 300, units = "in",width = 6, height = 4)
+oxy%>%
+  filter(Site==50,
+         month(Date)>4,
+         month(Date)<9)%>%
+  ggplot()+
+  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),
+              fill = "grey40", data = lines_rect, alpha = 0.2)+
+  geom_point(aes(x = Date_22, y = Depth_m))+
+  geom_line(aes(x = Date_22, y = Depth_m, lty = Year))+
+  ylab("Depth at which DO > 3")+
+  scale_linetype_manual(values = c("solid","dashed"))+
+  scale_y_reverse(lim = c(NA,0))+
+  theme_bw()+
+  theme(axis.title.x = element_blank())
+dev.off()
+```
