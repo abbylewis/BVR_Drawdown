@@ -39,9 +39,9 @@ Scripts to load data from EDI and calculate relevant summary metrics (e.g., Schm
    * Load and format greenhouse gas (GHG) data from EDI
 * [01_Load_and_process_data/CTD.Rmd](01_Load_and_process_data/CTD.Rmd)
    * Load and format CTD data from EDI and calculate euphotic zone depth
-* [01_Load_and_process_data/Fluora.Rmd](01_Load_and_process_data/Fluora.Rmd)
+* [01_Load_and_process_data/Fluoroprobe.Rmd](01_Load_and_process_data/Fluoroprobe.Rmd)
    * Load and format fluoroprobe data from EDI and calculate peak width and Cmax depth
-* [01_Load_and_process_data/Thermistor.Rmd](01_Load_and_process_data/Thermistor.Rmd)
+* [01_Load_and_process_data/Thermistors.Rmd](01_Load_and_process_data/Thermistors.Rmd)
    * Load and format in-situ thermistor and meteorological data from EDI. Calculate physical metrics that will be used in Figures 2, 3, 4, and 7
 * [01_Load_and_process_data/Meteorology.Rmd](01_Load_and_process_data/Meteorology.Rmd)
    * Load and format meteorological data
@@ -50,11 +50,17 @@ Scripts to load data from EDI and calculate relevant summary metrics (e.g., Schm
 
 These scripts use data files in ./Processed_data (generated using the scripts in 01_Load_and_process_data) to produce figures and statistics for the manuscript.
 
-* 07_Figures_5to7.Rmd
+* Figures_2to4.Rmd
+   * Analyze reservoir physics and meteorological data and generate Figures 2-4
+* Figures_5to7.Rmd
    * Generate time-series line plots of variables of interest (Figures 5-7)
-* 08_Met_stats.Rmd
-   * Calculate summary statistics for meteorological data
-* 09_NID.Rmd
+* Fluoroprobe - SI figure and summary stats.Rmd
+   * Calculate summary statistics for fluoroprobe data and create an SI figure
+* Meteorology statisitics.R
+   * Generate summary statisitics for meteorological data
+* SI_habitat_suitability.Rmd
+   * Generate figures of habitat suitability for SI
+* SI_NID.Rmd
    * Analyze data from the national inventory of dams to understand the distribution of reservoir sizes in the U.S.
 
 ### [Raw_external_data](Raw_external_data)
