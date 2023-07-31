@@ -1,0 +1,16 @@
+cff-version: 1.0.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Lewis
+    given-names: Abigail
+    orcid: https://orcid.org/0000-0001-9933-4542
+  - family-names: Lofton
+    given-names: Mary
+    orcid: https://orcid.org/0000-0003-3270-1330
+  - family-names: Breef-Pilz
+    given-names: Adrienne
+    orcid: https://orcid.org/0000-0002-6759-0063
+title: "abbylewis/BVR_Drawdown: Effects of a 2022 drawdown on water quality in Beaverdam Reservoir"
+version: v1.0.0
+repository-code: "https://github.com/abbylewis/BVR_Drawdown"
+license: MIT
