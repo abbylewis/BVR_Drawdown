@@ -48,7 +48,7 @@ Scripts to load data from EDI and calculate relevant summary metrics (e.g., Schm
 
 ### [02_Plotting_and_stats](02_Plotting_and_stats)
 
-These scripts use data files in ./Processed_data (generated using the scripts in 01_Load_and_process_data) to produce figures and statistics for the manuscript. [R/install.R](R/install.R) can be used to download all necessary pacakages.
+These scripts use data files in ./Processed_data (generated using the scripts in [01_Load_and_process_data](01_Load_and_process_data)) to produce figures and statistics for the manuscript. [R/install.R](R/install.R) can be used to download all necessary pacakages.
 
 * [Figures_2to4.Rmd](02_Plotting_and_stats/Figures_2to4.Rmd)
    * Analyze reservoir physics and meteorological data and generate Figures 2-4
