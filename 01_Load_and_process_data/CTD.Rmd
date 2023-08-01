@@ -17,10 +17,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # Load packages
 library(tidyverse)
 library(lubridate)
-library(akima)
-library(colorRamps)
 library(rLakeAnalyzer)
-library(readxl)
 
 
 # Load CTD data from EDI

@@ -23,7 +23,6 @@ library(tidyverse)
 library(lubridate)
 library(akima)
 library(colorRamps)
-library(zoo)
 library(ggpubr)
 library(cowplot)
 source("../R/thermo.depth.density.R")
@@ -243,7 +242,7 @@ surf = cat_long%>%
   dplyr::summarize(Reading = Reading[which.min(Sensor_depth)],
             Sensor_depth = mean(Reservoir_depth))
 
-bottom = cat_long%>%
+bot = cat_long%>%
   mutate(Date = as.Date(DateTime),
          Year = year(Date))%>%
   group_by(Date, Year)%>%
@@ -252,7 +251,7 @@ bottom = cat_long%>%
   
 filt = filt_no_surf%>%
   full_join(surf)%>%
-  full_join(bottom)
+  full_join(bot)
 
 depth_sum = cat_long%>%
   mutate(Date = as.Date(DateTime),
@@ -453,14 +452,6 @@ dev.off()
 Step 7: Stats for paper
 ```{r}
 #Turnover dates
-bot = catwalk_format%>%
-  group_by(Date)%>%
-  dplyr::summarize(Reading = Reading[which.max(Sensor_depth)])%>%
-  mutate(Date_22 = Date,
-         Year = year(Date))%>%
-  filter(Year %in% c(2021,2022))
-year(bot$Date_22) = 2022
-
 surf%>%
   rename(surf_temp = Reading)%>%
   select(-Sensor_depth)%>%

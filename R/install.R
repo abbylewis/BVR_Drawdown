@@ -1,0 +1,10 @@
+# install packages
+install.packages("tidyverse")
+install.packages("lubridate")
+install.packages("rLakeAnalyzer")
+install.packages("akima")
+install.packages("colorRamps")
+install.packages("ggpubr")
+install.packages("cowplot")
+install.packages("patchwork")
+install.packages("ggh4x")

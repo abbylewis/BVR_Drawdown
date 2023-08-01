@@ -17,7 +17,6 @@ Step 1: Load packages and FP data
 #load packages
 library(tidyverse)
 library(lubridate)
-library(RCurl)
 
 flo_metrics <- read.csv("../Processed_data/Fluora_bvr.csv")%>%
   mutate(Date = as.Date(Date))

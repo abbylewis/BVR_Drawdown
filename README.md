@@ -29,7 +29,7 @@ Carbon dioxide, drawdown, dissolved oxygen, high-frequency sensors, nitrogen, ph
 
 ### [01_Load_and_process_data](01_Load_and_process_data)
 
-Scripts to load data from EDI and calculate relevant summary metrics (e.g., Schmidt stability). Each code file corresponds to one data package on EDI. These code files do not produce any statistics or figures for the main manuscript, rather they output compiled data products, which are stored in ./Processed_data. 
+Scripts to load data from EDI and calculate relevant summary metrics (e.g., Schmidt stability). Each code file corresponds to one data package on EDI. These code files do not produce any statistics or figures for the main manuscript, rather they output compiled data products, which are stored in [Processed_data](Processed_data). [R/install.R](R/install.R) can be used to download all necessary pacakages.
 
 * [Metals.Rmd](01_Load_and_process_data/Metals.Rmd):
    * Load and format metals data from EDI
@@ -48,7 +48,7 @@ Scripts to load data from EDI and calculate relevant summary metrics (e.g., Schm
 
 ### [02_Plotting_and_stats](02_Plotting_and_stats)
 
-These scripts use data files in ./Processed_data (generated using the scripts in 01_Load_and_process_data) to produce figures and statistics for the manuscript.
+These scripts use data files in ./Processed_data (generated using the scripts in 01_Load_and_process_data) to produce figures and statistics for the manuscript. [R/install.R](R/install.R) can be used to download all necessary pacakages.
 
 * [Figures_2to4.Rmd](02_Plotting_and_stats/Figures_2to4.Rmd)
    * Analyze reservoir physics and meteorological data and generate Figures 2-4

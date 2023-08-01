@@ -30,7 +30,6 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(rLakeAnalyzer)
 library(lubridate)
-library(zoo)
 source("../R/thermo.depth.density.R")
 ```
 

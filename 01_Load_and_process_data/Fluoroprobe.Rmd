@@ -19,7 +19,6 @@ Step 1: Load packages and FP data
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(lubridate)
-library(RCurl)
 
 fluora <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/272/7/001cb516ad3e8cbabe1fdcf6826a0a45")
 ```
