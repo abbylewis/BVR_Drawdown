@@ -3,7 +3,7 @@
 # Date: 28 Mar 23
 
 # Load packages
-pacman::p_load("tidyverse","lubridate","Rcurl")
+pacman::p_load("tidyverse","lubridate","RCurl")
 
 
 # Get data from EDI
@@ -27,6 +27,16 @@ avg_wind<- wind_rain%>%
   group_by(Year)%>%
   summarise(mean_wind=mean(WindSpeed_Average_m_s, na.rm=T), sd_wind=sd(WindSpeed_Average_m_s, na.rm=T ))
 
+# Average air temperatures
+avg_AT <- met%>%
+  mutate(DateTime=ymd_hms(DateTime))%>%
+  select(DateTime, AirTemp_C_Average)%>%
+  mutate(Year=year(DateTime))%>%
+  mutate(DOY=yday(DateTime))%>%
+  filter(DOY>138 & DOY< 183)%>%
+  filter(Year>2020)%>%
+  group_by(Year) %>% 
+  summarise(mean_air=mean(AirTemp_C_Average, na.rm=T), sd_air=sd(AirTemp_C_Average, na.rm=T ))
 
 # Average daily precipitation 
 
@@ -72,10 +82,7 @@ air_temp<-met%>%
   mutate(Year=year(DateTime))%>%
   mutate(DOY=yday(DateTime))%>%
   filter(DOY>138 & DOY< 183)%>%
-  filter(Year>2020)%>%
-  group_by(Year)%>%
-  summarise(mean_air=mean(AirTemp_C_Average, na.rm=T), sd_air=sd(AirTemp_C_Average, na.rm=T ))
-
+  filter(Year>2020)
 
 BVR <-read_csv(infile1)
 
