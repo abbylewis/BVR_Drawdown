@@ -38,7 +38,12 @@ weather_sum  <- read_csv("../Processed_data/Weather_sum.csv")
 thermo_raw <- read_csv("../Processed_data/thermocline_depth.csv")
 
 # Set lines
-lines = data.frame(Dates = as.Date(c("2022-06-28", "2022-05-19")), desc = c("closed","opened"), type = c("close","open"), status = c("init","init"), Year = 2022, year_class = "2022")
+lines = data.frame(Dates = as.Date(c("2022-06-28", "2022-05-19")), 
+                   desc = c("closed","opened"), 
+                   type = c("close","open"),
+                   status = c("init","init"), 
+                   Year = 2022,
+                   year_class = "2022")
 # Re-format for rectangle instead of discrete lines
 lines_rect = lines%>%
   select(-type)%>%
@@ -133,11 +138,6 @@ surf_plot_save
 
 Step 3: Plot meteorology
 ```{r}
-cum_rain = weather_sum%>%
-  group_by(Year)%>%
-  mutate(cum_rain_mm = cumsum(Rain_Total_mm),
-         Year = as.factor(Year))
-
 temp = weather_sum%>%
   mutate(Year = as.factor(Year))%>%
   ggplot()+
@@ -150,22 +150,6 @@ temp = weather_sum%>%
   theme_bw()+
   scale_x_date(date_breaks = "2 month", date_labels =  "%b")+
   theme(axis.title.x = element_blank())
-
-rain_cum = cum_rain%>%
-  ggplot()+
-  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
-  geom_line(aes(x = Date_22, y = cum_rain_mm, color = Year),size = 1.5)+
-  scale_color_manual(values = c("black","#0800FA"))+
-  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
-  scale_linetype_manual(values = c("solid","dashed"))+
-  ylab("Cumulative rain (mm)")+
-  theme_bw()+
-  scale_x_date(date_breaks = "2 month", date_labels =  "%b")+
-  theme(axis.title.x = element_blank())
-
-jpeg("../Figs/rain_cum.jpg",res = 300, units = "in",width = 4, height = 3)
-rain_cum
-dev.off()
 
 air_temp_plot = weather_sum%>%
   mutate(Year = year(Date),
