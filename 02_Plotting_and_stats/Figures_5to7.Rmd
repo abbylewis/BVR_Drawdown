@@ -17,9 +17,7 @@ Code chunk 4: Make line plot of nutrients, phytos, DOC, and CO2 (Figure 5)
 Code chunk 5: Compile stats for Figure 6
 Code chunk 6: Make line plot of turbidity, euphotic zone, peak width, and peak depth (Figure 6)
 Code chunk 7: Compile stats for Figure 7
-Code chunk 8: Make line plot of metals data, DO, and thermocline depth (Figure 7)
-Code chunk 9: Make line plot of TN:TP ratio for SI
-
+Code chunk 8: Make line plot of metals data, DO, and thermocline depth (Figure 7
 
 Code chunk 1: Load packages, set plot specifications
 ```{r Load packages and define drawdown dates, include=FALSE}
@@ -30,7 +28,7 @@ library(akima)
 library(colorRamps)
 library(ggh4x)
 library(patchwork)
-source("R/plot_facet.R")
+source("../R/plot_facet.R")
 
 #Define drawdown dates
 lines_rect = data.frame(closed = as.Date("2022-06-28"), opened = as.Date("2022-05-19"), Year = 2022, year_class = "2022")
@@ -52,42 +50,45 @@ theme_set(
         legend.text=element_text(size=7)
         )
   )
+
+# Make a directory for Figures if there isn't one
+if (!dir.exists("../Figs")){dir.create("../Figs")}
 ```
 
 
 Code chunk 2: Load data
 ```{r Load and format chemistry data}
 #From Chem.Rmd
-chem_full = read.csv("Processed_data/Chem at 0.1m.csv")%>%
+chem_full = read.csv("../Processed_data/Chem at 0.1m.csv")%>%
   mutate(DateTime=as.Date(DateTime))
 
 # From physical metrics script
-thermo_depth = read.csv("Processed_data/thermocline_depth.csv")%>%
+thermo_depth = read.csv("../Processed_data/thermocline_depth.csv")%>%
   filter(year(Date)%in%c(2022,2021))
 
 # From CTD data processing script
-light = read.csv("Processed_data/attenuation_calc.csv")%>%
+light = read.csv("../Processed_data/attenuation_calc.csv")%>%
   filter(year(Date)%in%c(2021,2022))
 
-ctd = read.csv("Processed_data/CTD at 0.1m.csv")%>%
+ctd = read.csv("../Processed_data/CTD at 0.1m.csv")%>%
   filter(year(Date)%in%c(2021,2022))
 
 # From GHG script
-ghg = read.csv("Processed_data/GHG at 0.1m.csv")%>%
+ghg = read.csv("../Processed_data/GHG at 0.1m.csv")%>%
   filter(year(DateTime)%in%c(2021,2022))
 
 # From metals script
-metals = read.csv("Processed_data/Metals at 0.1m.csv")%>%
+metals = read.csv("../Processed_data/Metals at 0.1m.csv")%>%
   filter(year(Date)%in%c(2021,2022))
 
 # From fluora script
-fluora_surface <- read.csv("Processed_data/Fluora_surface.csv")%>%
+fluora_surface <- read.csv("../Processed_data/Fluora_surface.csv")%>%
   filter(year(DateTime)%in%c(2021,2022))
 
-cmax_depth = read.csv("Processed_data/FP_CmaxDepth.csv")%>%
+cmax_depth = read.csv("../Processed_data/FP_CmaxDepth.csv")%>%
   filter(year(Date)%in%c(2021,2022))
 
-peak_width = read.csv("Processed_data/FP_PeakWidth.csv")%>%
+peak_width = read.csv("../Processed_data/FP_PeakWidth.csv")%>%
   filter(year(Date)%in%c(2021,2022))
 ```
 
@@ -129,12 +130,15 @@ maxes_sum = figure_5_data%>%
          pct = (max[Year==2022]-max[Year==2021])/max[Year==2021]*100)
 
 #Stats
-maxes%>%
+nut_maxes <- maxes %>%
   mutate(max_date=as.Date(max_date, origin="1970-01-01"))
-as.Date("2022-07-05")-as.Date("2022-06-27")
-as.Date("2022-07-11")-as.Date("2022-06-27")
-as.Date("2022-07-18")-as.Date("2022-06-27")
-as.numeric(maxes$max_date)
+
+nut_maxes$max_date[which(nut_maxes$color == 'DOC')] - nut_maxes$max_date[which(nut_maxes$color == 'Total phytoplankton')] 
+
+nut_maxes$max_date[which(nut_maxes$color == 'CO2')] - nut_maxes$max_date[which(nut_maxes$color == 'Total phytoplankton')] 
+
+nut_maxes$max_date[which(nut_maxes$color == 'Ammonium')] - nut_maxes$max_date[which(nut_maxes$color == 'Total phytoplankton')] 
+
 ```
 
 Code chunk 4: Make line plot of nutrients, phytos, DOC, and CO2 (Figure 5)
@@ -199,7 +203,7 @@ co2 <- plot_facet(data = figure_5_data,
 
 figure_5 <- wrap_plots(p, n, phyto, doc, co2, nrow=5)
 
-ggsave("./Figs/Figure_5.jpeg", figure_5, dpi = 300, width = 6, height = 5, bg = "white")
+ggsave("../Figs/Figure_5.jpeg", figure_5, dpi = 300, width = 6, height = 5, bg = "white")
 ```
 
 
@@ -300,7 +304,7 @@ width <- plot_facet(data = figure_6_data,
 
 figure_6 <- wrap_plots(turb, zeu, cmax, width, nrow=4)
 
-ggsave("./Figs/Figure_6.jpeg", figure_6, dpi = 300, width = 6, height = 4, bg = "white")
+ggsave("../Figs/Figure_6.jpeg", figure_6, dpi = 300, width = 6, height = 4, bg = "white")
 ```
 
 
@@ -405,73 +409,6 @@ mn <- plot_facet(data = figure_7_data,
 
 figure_7 <- wrap_plots(thermo, do_sat, fe, mn, nrow=4)
 
-ggsave(file="./Figs/Figure_7.jpeg",figure_7, dpi = 300, width = 6, height = 4, bg = "white")
+ggsave(file="../Figs/Figure_7.jpeg",figure_7, dpi = 300, width = 6, height = 4, bg = "white")
  
-```
-
-
-Code chunk 9: Make line plot of TN:TP ratio for SI
-```{r}
-#Combine all data
-tntp = chem_full%>%
-  filter(Depth_m ==0.1)%>%
-  select(DateTime, TP_ugL, TN_ugL)%>%
-  full_join(fluora_surface%>%mutate(DateTime = as.Date(DateTime)))%>%
-  mutate(TNTP = TN_ugL/TP_ugL)%>%
-  select(DateTime, TNTP, TotalConc_ugL, Bluegreens_ugL)%>%
-  pivot_longer(cols = c(TNTP, TotalConc_ugL, Bluegreens_ugL))%>% #pivot for facet wrap
-  filter(!is.na(value),
-         month(DateTime)>4,
-         month(DateTime)<9)%>%
-  mutate(Year = year(DateTime),
-         color = name,
-         name = ifelse(name%in%c("TotalConc_ugL","Bluegreens_ugL"),"Phyto",name))%>% #Re-format to get cyanos on the same plot as totals
-  mutate(name = factor(name, levels=c("TNTP","Phyto")),
-         color = factor(color, levels=c("TotalConc_ugL","Bluegreens_ugL","TNTP"),
-                        labels=c("Total phytoplankton", "Cyanobacteria","TNTP"))) #Re-label colors
-
-#Calculate maxes
-maxes = tntp%>%
-  group_by(name,color, Year)%>%
-  summarize(max_date = DateTime[which.max(value)],
-            min_date = DateTime[which.min(value)])%>%
-  filter(Year=="2022")%>%
-  mutate(max_date = ifelse(name %in% c("thermo","Zeu","DO_mgL"),min_date,max_date))
-
-maxes_sum = tntp%>%
-  group_by(name,color, Year)%>%
-  summarize(max = max(value))%>%
-  group_by(name,color)%>%
-  mutate(dif = max[Year==2022]-max[Year==2021],
-         pct = (max[Year==2022]-max[Year==2021])/max[Year==2021]*100)
-
-#Stats
-maxes%>%
-  mutate(max_date=as.Date(max_date, origin="1970-01-01"))
-as.numeric(maxes$max_date)
-
-#Specify colors
-my_colors = c("darkgreen","darkgreen","black")
-
-tntp%>%
-  ggplot()+
-  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
-  geom_point(aes(y = value, x = DateTime,color = color))+
-  geom_line(aes(y = value, lty=color,x = DateTime,color = color))+
-  geom_vline(aes(xintercept = max_date, color = color), data = maxes, lwd = 2, alpha = 0.5, show.legend = F)+
-  scale_linetype_manual(values = c("solid","11","solid"))+
-  scale_color_manual(values = my_colors)+
-  facet_grid(rows = vars(name), cols = vars(Year), scales = "free", switch = "y")+
-  theme(strip.placement = "outside", 
-        strip.text.x = element_text(size = 12, face = "bold"),
-        legend.position = "bottom")+
-  guides(color = guide_legend(byrow = TRUE,keyheight = 0.75))+
-  ylab("")+
-  force_panelsizes(rows = unit(.75, "in"),
-                   cols = unit(2.5, "in"))
-ggsave("./Figs/SI_TNTP.jpeg", dpi = 300, width = 6.5, height = 3)
-
-before = tntp$value[tntp$DateTime=="2022-05-23"&tntp$name=="TNTP"]
-after = tntp$value[tntp$DateTime=="2022-06-27"&tntp$name=="TNTP"]
-(after-before)/before*100
 ```

@@ -38,11 +38,19 @@ weather_sum  <- read_csv("../Processed_data/Weather_sum.csv")
 thermo_raw <- read_csv("../Processed_data/thermocline_depth.csv")
 
 # Set lines
-lines = data.frame(Dates = as.Date(c("2022-06-28", "2022-05-19")), desc = c("closed","opened"), type = c("close","open"), status = c("init","init"), Year = 2022, year_class = "2022")
+lines = data.frame(Dates = as.Date(c("2022-06-28", "2022-05-19")), 
+                   desc = c("closed","opened"), 
+                   type = c("close","open"),
+                   status = c("init","init"), 
+                   Year = 2022,
+                   year_class = "2022")
 # Re-format for rectangle instead of discrete lines
 lines_rect = lines%>%
   select(-type)%>%
   pivot_wider(names_from = desc, values_from = Dates)
+
+# Make a directory for Figures if there isn't one
+if (!dir.exists("../Figs")){dir.create("../Figs")}
 ```
 
 
@@ -58,7 +66,7 @@ schmidt_fig = schmidt_df%>%
   scale_fill_manual(values = c("black","#00F7FF"))+
   scale_color_manual(values = c("black","#0800FA"))+
   geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
-  ylab("Schmidt stability (J/m^2)")+
+  ylab(expression(paste("Schmidt stability ", "(", J~m^-2, ")")))+
   theme_bw()+
   scale_x_date(date_breaks = "2 month", date_labels =  "%b")+
   theme(axis.title.x = element_blank(),
@@ -130,11 +138,6 @@ surf_plot_save
 
 Step 3: Plot meteorology
 ```{r}
-cum_rain = weather_sum%>%
-  group_by(Year)%>%
-  mutate(cum_rain_mm = cumsum(Rain_Total_mm),
-         Year = as.factor(Year))
-
 temp = weather_sum%>%
   mutate(Year = as.factor(Year))%>%
   ggplot()+
@@ -147,22 +150,6 @@ temp = weather_sum%>%
   theme_bw()+
   scale_x_date(date_breaks = "2 month", date_labels =  "%b")+
   theme(axis.title.x = element_blank())
-
-rain_cum = cum_rain%>%
-  ggplot()+
-  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
-  geom_line(aes(x = Date_22, y = cum_rain_mm, color = Year, color = Year),size = 1.5)+
-  scale_color_manual(values = c("black","#0800FA"))+
-  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
-  scale_linetype_manual(values = c("solid","dashed"))+
-  ylab("Cumulative rain (mm)")+
-  theme_bw()+
-  scale_x_date(date_breaks = "2 month", date_labels =  "%b")+
-  theme(axis.title.x = element_blank())
-
-jpeg("../Figs/rain_cum.jpg",res = 300, units = "in",width = 4, height = 3)
-rain_cum
-dev.off()
 
 air_temp_plot = weather_sum%>%
   mutate(Year = year(Date),
@@ -364,7 +351,10 @@ bottom <- df.final%>%
 ctd_adj_depth <- ctd_sensor%>%
   full_join(bottom)
 
-lines <- data.frame(Dates = as.Date(c("2022-06-28", "2022-05-19","2022-05-28", "2022-07-01")), desc = c("closed","opened", "decreasing", "stable"), type = c("close","open","open","close"), status = c("init","init","final","final"), Year = 2022)
+lines <- data.frame(Dates = as.Date(c("2022-06-28", "2022-05-19","2022-05-28", "2022-07-01")), 
+                    desc = c("closed","opened", "decreasing", "stable"), 
+                    type = c("close","open","open","close"), status = c("init","init","final","final"),
+                    Year = 2022)
 lines <- lines%>%
   filter(status == "init")
 #Re-format for rectangle instead of discrete lines
@@ -452,7 +442,7 @@ dev.off()
 Step 7: Stats for paper
 ```{r}
 #Turnover dates
-surf%>%
+turnover_dates <- surf%>%
   rename(surf_temp = Reading)%>%
   select(-Sensor_depth)%>%
   left_join(bot%>%rename(bot_temp=Reading))%>%
@@ -463,27 +453,33 @@ surf%>%
   summarize(turnover=first(Date[surf_temp-bot_temp<1]))
 
 #How much earlier was turnover?
-yday("2022-11-6")-yday("2021-10-19")
+yday(turnover_dates$turnover[which(turnover_dates$Year == 2021)]) - yday(turnover_dates$turnover[which(turnover_dates$Year == 2022)])
 
-vw_temp_df%>%
+mean_temps <- vw_temp_df%>%
   filter(month(Date)%in%c(7))%>%
   group_by(Year)%>%
   dplyr::summarise(mean = mean(vw_temp, na.rm = T),
                    sd = sd(vw_temp, na.rm = T))
-22.44-19.70
 
-buoy_max%>%
+# change in vw_temp
+mean_temps$mean[which(mean_temps$Year == 2021)] - mean_temps$mean[which(mean_temps$Year == 2022)]
+
+mean_buoy <- buoy_max%>%
   filter(month(Date)%in%c(7))%>%
   mutate(Year = year(Date))%>%
   group_by(Year)%>%
   dplyr::summarise(mean = mean(max, na.rm = T),
                    sd = sd(max, na.rm = T))
-(0.01260153-0.01007704)/0.01007704
 
-schmidt_df%>%
+# change in buoyancy frequency
+((mean_buoy$mean[which(mean_buoy$Year == 2022)] - mean_buoy$mean[which(mean_buoy$Year == 2021)])/mean_buoy$mean[which(mean_buoy$Year == 2021)]) 
+
+mean_schmidt <- schmidt_df%>%
   filter(month(Date)%in%c(7))%>%
   group_by(Year)%>%
   dplyr::summarise(mean = mean(Schmidt, na.rm = T),
                    sd = sd(Schmidt, na.rm = T))
-(124.55-66.87)/124.55
+
+# change in schmidt stability
+((mean_schmidt$mean[which(mean_schmidt$Year == 2021)] - mean_schmidt$mean[which(mean_schmidt$Year == 2022)])/mean_schmidt$mean[which(mean_schmidt$Year == 2021)]) 
 ```

@@ -106,7 +106,7 @@ flexible_bathy = cat_depths%>%
   mutate(Reservoir = "BVR")%>%
   full_join(bathy)%>%
   group_by(Date)%>%
-  mutate(Depth_m = Depth_m - (max(Depth_m)-unique(WaterLevel)) + 1)%>%
+  mutate(Depth_m = Depth_m - (max(Depth_m)-unique(WaterLevel)))%>%
   filter(Depth_m>=0)
 ```
 

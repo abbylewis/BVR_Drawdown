@@ -12,7 +12,7 @@ Carbon dioxide, drawdown, dissolved oxygen, high-frequency sensors, nitrogen, ph
 
 ## Data availability
 
-* Data for this study published in the Environmental Data Initative data portal. Data analysis code directly pulls from these sources: 
+* Data for this study published in the Environmental Data Initiative data portal. Data analysis code directly pulls from these sources: 
     * [Water chemistry](https://portal.edirepository.org/nis/mapbrowse?packageid=edi.199.11) (Carey et al. 2023a)
     * [Greenhouse gases](https://portal.edirepository.org/nis/mapbrowse?packageid=edi.551.7) (Carey et al. 2023b)
     * [CTD](https://portal.edirepository.org/nis/mapbrowse?packageid=edi.200.12) (Carey et al. 2023c)
@@ -22,14 +22,14 @@ Carbon dioxide, drawdown, dissolved oxygen, high-frequency sensors, nitrogen, ph
     * [Meteorology](https://portal.edirepository.org/nis/mapbrowse?packageid=edi.389.7) (Carey and Breef-Pilz 2023)
     * [Metals](https://portal.edirepository.org/nis/mapbrowse?packageid=edi.455.7) (Schreiber et al. 2023)
 
-* Additional auxilary data are presented in ./External data:
-    * NID_YearCompleted_SurfaceArea_State.csv: National Inventory of Dams Database (available [here](https://nid.sec.usace.army.mil/#/))
+* Additional auxiliary data are presented in ./External data:
+    * NID_YearCompleted_SurfaceArea_State.csv: National Inventory of Dams Database (available [here](https://nid.sec.usace.army.mil/#/)). These data were obtained on xxxx (just in case it changes...)
 
 ## Repo content information
 
 ### [01_Load_and_process_data](01_Load_and_process_data)
 
-Scripts to load data from EDI and calculate relevant summary metrics (e.g., Schmidt stability). Each code file corresponds to one data package on EDI. These code files do not produce any statistics or figures for the main manuscript, rather they output compiled data products, which are stored in [Processed_data](Processed_data). [R/install.R](R/install.R) can be used to download all necessary pacakages.
+Scripts to load data from EDI and calculate relevant summary metrics (e.g., Schmidt stability). Each code file corresponds to one data package on EDI. These code files do not produce any statistics or figures for the main manuscript, rather they output compiled data products, which are stored in [Processed_data](Processed_data). [R/install.R](R/install.R) can be used to download all necessary packages.
 
 * [Metals.Rmd](01_Load_and_process_data/Metals.Rmd):
    * Load and format metals data from EDI
@@ -48,7 +48,7 @@ Scripts to load data from EDI and calculate relevant summary metrics (e.g., Schm
 
 ### [02_Plotting_and_stats](02_Plotting_and_stats)
 
-These scripts use data files in ./Processed_data (generated using the scripts in [01_Load_and_process_data](01_Load_and_process_data)) to produce figures and statistics for the manuscript. [R/install.R](R/install.R) can be used to download all necessary pacakages.
+These scripts use data files in ./Processed_data (generated using the scripts in [01_Load_and_process_data](01_Load_and_process_data)) to produce figures and statistics for the manuscript. [R/install.R](R/install.R) can be used to download all necessary packages.
 
 * [Figures_2to4.Rmd](02_Plotting_and_stats/Figures_2to4.Rmd)
    * Analyze reservoir physics and meteorological data and generate Figures 2-4
@@ -57,7 +57,7 @@ These scripts use data files in ./Processed_data (generated using the scripts in
 * [Fluoroprobe - SI figure and summary stats.Rmd](02_Plotting_and_stats/Fluoroprobe-SI_figure_summary_stats.Rmd)
    * Calculate summary statistics for fluoroprobe data and create an SI figure
 * [Meteorology statisitics.R](02_Plotting_and_stats/Meteorology_statisitics.R)
-   * Generate summary statisitics for meteorological data
+   * Generate summary statistics for meteorological data
 * [SI_habitat_suitability.Rmd](02_Plotting_and_stats/SI_habitat_suitability.Rmd)
    * Generate figures of habitat suitability for SI
 * [SI_NID.Rmd](02_Plotting_and_stats/SI_NID.Rmd)

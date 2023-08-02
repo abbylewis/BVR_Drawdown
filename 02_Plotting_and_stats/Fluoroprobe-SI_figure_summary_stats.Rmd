@@ -20,6 +20,9 @@ library(lubridate)
 
 flo_metrics <- read.csv("../Processed_data/Fluora_bvr.csv")%>%
   mutate(Date = as.Date(Date))
+
+# Make a directory for Figures if there isn't one
+if (!dir.exists("../Figs")){dir.create("../Figs")}
 ```
 
 
@@ -79,20 +82,6 @@ ggplot(data = subset(cmpz_1, cmpz_1$spectral_group != "crypto_rel_pz"), aes(x = 
                               "brown_rel_pz" = "Brown algae", "total_rel_pz" = "Total phyto."))
 dev.off()
 
-jpeg("../Figs/SI_Cmax_depth_pz_0.1.jpeg", res = 300, width = 6, height = 4, units = "in")
-ggplot(data = subset(cmpz_0.1, cmpz_0.1$spectral_group != "crypto_rel_pz_0.1"), aes(x = spectral_group, y = Cmax_depth_rel_pz, fill = as.factor(Year)))+
-  geom_boxplot()+
-  geom_hline(yintercept = 0)+
-  theme_bw()+
-  ggtitle("Photic zone = 0.1% light; this is ONLY May-July")+
-  xlab("Spectral group")+
-  ylab("Cmax depth standardized to photic zone depth")+
-  labs(fill = "Year")+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
-  scale_x_discrete(labels=c("green_rel_pz_0.1" = "Green algae", "cyano_rel_pz_0.1" = "Cyanobacteria",
-                              "brown_rel_pz_0.1" = "Brown algae", "total_rel_pz_0.1" = "Total phyto."))
-dev.off()
 ```
 
 
@@ -122,5 +111,7 @@ dom <- flo_metrics %>%
                                           ifelse(dom == prop_ma, "MixedAlgae","zombies")))))
 
 dom %>%
-  count(dom_group)
+  count(dom_group) %>% 
+  ungroup() %>% 
+  mutate(perc = 100*(n/sum(n)))
 ```

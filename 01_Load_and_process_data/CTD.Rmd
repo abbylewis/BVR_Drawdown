@@ -44,11 +44,15 @@ Step 2: Format data and combine with YSI
 # Decrease CTD dataset size by trimming to 0.1m depth intervals
 depths <- seq(0,11, by = .1)
 newDepths <- depths
-df.final.raw<- ctd %>% group_by(Date, Reservoir, Site) %>% slice(which.min(abs(as.numeric(Depth_m) - depths[1]))) #Create a new dataframe
+df.final.raw<- ctd %>% 
+  group_by(Date, Reservoir, Site) %>%
+  slice(which.min(abs(as.numeric(Depth_m) - depths[1]))) #Create a new dataframe
 df.final.raw$Depth_m <- newDepths[1]
 for (i in 2:length(depths)){ #loop through all depths and add the closest values to the final dataframe
-  ctd_atThisDepth <- ctd %>% group_by(Date, Reservoir, Site) %>% slice(which.min(abs(as.numeric(Depth_m) - depths[i])))
-  ctd_atThisDepth <- ctd_atThisDepth%>%
+  ctd_atThisDepth <- ctd %>% 
+    group_by(Date, Reservoir, Site) %>% 
+    slice(which.min(abs(as.numeric(Depth_m) - depths[i])))
+  ctd_atThisDepth <- ctd_atThisDepth %>%
     filter(abs(Depth_m-newDepths[i])<0.1) #only include if the measured depth is within 0.1 of the depth we are labeling it
   ctd_atThisDepth$Depth_m <- newDepths[i]
   df.final.raw <- rbind(df.final.raw,ctd_atThisDepth)
@@ -61,6 +65,7 @@ ysi_formatted <- ysi%>%
   select("Reservoir", "Site", "Date", "Depth_m", "DO_mgL", "DOSat","Temp_C")%>%
   #We are only using YSI to fill in gaps in CTD data. Select data for those gaps here
   filter(year(Date)==2021)%>%
+  # Note why these are NAs
   mutate(DO_mgL = ifelse(Date<=as.Date("2021-07-01")|Date>=as.Date("2021-12-01"),NA,DO_mgL),
          DOSat = ifelse(Date<=as.Date("2021-07-01")|Date>=as.Date("2021-12-01"),NA,DOSat),
          Temp_C = ifelse(Date<=as.Date("2021-07-01")|Date>=as.Date("2021-12-01"),NA,Temp_C))%>%
@@ -109,7 +114,11 @@ Step 3: Calculate light attenuation/light extinction
 
 #Add PAR data from the YSI dataset
 ctd_bvr <- ctd%>%
-  full_join(ysi%>%select(DateTime,Depth_m,PAR_umolm2s)%>%filter(!is.na(PAR_umolm2s))%>%rename(Date = DateTime)%>%mutate(Date=as.Date(Date)))
+  full_join(ysi%>%
+              select(DateTime,Depth_m,PAR_umolm2s)%>%
+              filter(!is.na(PAR_umolm2s))%>%
+              rename(Date = DateTime)%>%
+              mutate(Date=as.Date(Date)))
 
 
 #Calculate light attenuation
@@ -119,8 +128,7 @@ atten_k = ctd_bvr%>%
   group_by(Date)%>%
   filter(sum(Depth_m<0)>0)%>%
   mutate(I0 = mean(PAR_umolm2s[Depth_m<0], na.rm = T),
-         PAR_umolm2s = ifelse(PAR_umolm2s==0,0.001,PAR_umolm2s)
-         )%>%
+         PAR_umolm2s = ifelse(PAR_umolm2s==0,0.001,PAR_umolm2s))%>%
   filter(Depth_m>0,
          !I0==0)%>%
   summarize(I0 = unique(I0),

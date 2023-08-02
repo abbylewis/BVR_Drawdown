@@ -108,6 +108,10 @@ profiles <- unique(pw$key)
 
 final <- matrix(NA,nrow = length(unique(pw$key)), ncol = 2)
 
+if (!dir.exists('../Figs/peak_width_plots')) {
+  dir.create('../Figs/peak_width_plots', recursive = T)
+}
+
 for (i in 1:length(profiles)){
 
   profile <- pw %>%
@@ -141,7 +145,7 @@ for (i in 1:length(profiles)){
                          conc_med = conc_med)
     
     #plot profile + peak width
-    plot_filename = paste0("../Figs/peak_width_plots_FWB/",profile$key[1],".jpeg")
+    plot_filename = paste0("../Figs/peak_width_plots/",profile$key[1],".jpeg")
     # create plot
                   pp0 = ggplot() +
                       geom_line(data = profile, aes(x = depth, y = chl), size = 0.75, color = "springgreen3")+
