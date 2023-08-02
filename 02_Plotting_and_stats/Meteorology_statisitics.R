@@ -65,37 +65,3 @@ total_rain<- avg_rain%>%
 per<-cbind(high_rain_period,total_rain)
 
 per$proportion<-per$may_rain_mm/per$all_rain_mm
-
-
-# Look at the linear relationship between the FCR air temp and the temp on the data logger at BVR
-
-inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/725/3/a9a7ff6fe8dc20f7a8f89447d4dc2038" 
-infile1 <- tempfile()
-options(timeout=3000)
-try(download.file(inUrl1,infile1,method="auto"))
-
-# Just air temp for Met
-
-air_temp<-met%>%
-  mutate(DateTime=ymd_hms(DateTime))%>%
-  select(DateTime, AirTemp_C_Average)%>%
-  mutate(Year=year(DateTime))%>%
-  mutate(DOY=yday(DateTime))%>%
-  filter(DOY>138 & DOY< 183)%>%
-  filter(Year>2020)
-
-BVR <-read_csv(infile1)
-
-
-cr_temp<-BVR%>%
-  select(DateTime, CR6Panel_Temp_C)%>%
-  mutate(Year=year(DateTime))%>%
-  mutate(DOY=yday(DateTime))%>%
-  filter(DOY>138 & DOY< 183)%>%
-  filter(Year>2020)%>%
-  merge(.,air_temp, by="DateTime")
-
-lm_Panel=lm(cr_temp$CR6Panel_Temp_C ~ cr_temp$AirTemp_C_Average)
-summary(lm_Panel)#gives data on linear model parameters 
-
-plot(cr_temp$CR6Panel_Temp_C,cr_temp$AirTemp_C_Average)
