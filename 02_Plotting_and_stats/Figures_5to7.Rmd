@@ -132,12 +132,15 @@ maxes_sum = figure_5_data%>%
          pct = (max[Year==2022]-max[Year==2021])/max[Year==2021]*100)
 
 #Stats
-maxes%>%
+nut_maxes <- maxes %>%
   mutate(max_date=as.Date(max_date, origin="1970-01-01"))
-as.Date("2022-07-05")-as.Date("2022-06-27")
-as.Date("2022-07-11")-as.Date("2022-06-27")
-as.Date("2022-07-18")-as.Date("2022-06-27")
-as.numeric(maxes$max_date)
+
+nut_maxes$max_date[which(nut_maxes$color == 'DOC')] - nut_maxes$max_date[which(nut_maxes$color == 'Total phytoplankton')] 
+
+nut_maxes$max_date[which(nut_maxes$color == 'CO2')] - nut_maxes$max_date[which(nut_maxes$color == 'Total phytoplankton')] 
+
+nut_maxes$max_date[which(nut_maxes$color == 'Ammonium')] - nut_maxes$max_date[which(nut_maxes$color == 'Total phytoplankton')] 
+
 ```
 
 Code chunk 4: Make line plot of nutrients, phytos, DOC, and CO2 (Figure 5)
@@ -202,7 +205,7 @@ co2 <- plot_facet(data = figure_5_data,
 
 figure_5 <- wrap_plots(p, n, phyto, doc, co2, nrow=5)
 
-ggsave("./Figs/Figure_5.jpeg", figure_5, dpi = 300, width = 6, height = 5, bg = "white")
+ggsave("../Figs/Figure_5.jpeg", figure_5, dpi = 300, width = 6, height = 5, bg = "white")
 ```
 
 
