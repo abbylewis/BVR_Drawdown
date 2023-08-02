@@ -154,7 +154,7 @@ temp = weather_sum%>%
 rain_cum = cum_rain%>%
   ggplot()+
   geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
-  geom_line(aes(x = Date_22, y = cum_rain_mm, color = Year, color = Year),size = 1.5)+
+  geom_line(aes(x = Date_22, y = cum_rain_mm, color = Year),size = 1.5)+
   scale_color_manual(values = c("black","#0800FA"))+
   geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
   scale_linetype_manual(values = c("solid","dashed"))+
@@ -367,7 +367,10 @@ bottom <- df.final%>%
 ctd_adj_depth <- ctd_sensor%>%
   full_join(bottom)
 
-lines <- data.frame(Dates = as.Date(c("2022-06-28", "2022-05-19","2022-05-28", "2022-07-01")), desc = c("closed","opened", "decreasing", "stable"), type = c("close","open","open","close"), status = c("init","init","final","final"), Year = 2022)
+lines <- data.frame(Dates = as.Date(c("2022-06-28", "2022-05-19","2022-05-28", "2022-07-01")), 
+                    desc = c("closed","opened", "decreasing", "stable"), 
+                    type = c("close","open","open","close"), status = c("init","init","final","final"),
+                    Year = 2022)
 lines <- lines%>%
   filter(status == "init")
 #Re-format for rectangle instead of discrete lines
