@@ -61,36 +61,36 @@ if (!dir.exists("../Figs")){dir.create("../Figs")}
 Code chunk 2: Load data
 ```{r Load and format chemistry data}
 #From Chem.Rmd
-chem_full = read.csv("Processed_data/Chem at 0.1m.csv")%>%
+chem_full = read.csv("../Processed_data/Chem at 0.1m.csv")%>%
   mutate(DateTime=as.Date(DateTime))
 
 # From physical metrics script
-thermo_depth = read.csv("Processed_data/thermocline_depth.csv")%>%
+thermo_depth = read.csv("../Processed_data/thermocline_depth.csv")%>%
   filter(year(Date)%in%c(2022,2021))
 
 # From CTD data processing script
-light = read.csv("Processed_data/attenuation_calc.csv")%>%
+light = read.csv("../Processed_data/attenuation_calc.csv")%>%
   filter(year(Date)%in%c(2021,2022))
 
-ctd = read.csv("Processed_data/CTD at 0.1m.csv")%>%
+ctd = read.csv("../Processed_data/CTD at 0.1m.csv")%>%
   filter(year(Date)%in%c(2021,2022))
 
 # From GHG script
-ghg = read.csv("Processed_data/GHG at 0.1m.csv")%>%
+ghg = read.csv("../Processed_data/GHG at 0.1m.csv")%>%
   filter(year(DateTime)%in%c(2021,2022))
 
 # From metals script
-metals = read.csv("Processed_data/Metals at 0.1m.csv")%>%
+metals = read.csv("../Processed_data/Metals at 0.1m.csv")%>%
   filter(year(Date)%in%c(2021,2022))
 
 # From fluora script
-fluora_surface <- read.csv("Processed_data/Fluora_surface.csv")%>%
+fluora_surface <- read.csv("../Processed_data/Fluora_surface.csv")%>%
   filter(year(DateTime)%in%c(2021,2022))
 
-cmax_depth = read.csv("Processed_data/FP_CmaxDepth.csv")%>%
+cmax_depth = read.csv("../Processed_data/FP_CmaxDepth.csv")%>%
   filter(year(Date)%in%c(2021,2022))
 
-peak_width = read.csv("Processed_data/FP_PeakWidth.csv")%>%
+peak_width = read.csv("../Processed_data/FP_PeakWidth.csv")%>%
   filter(year(Date)%in%c(2021,2022))
 ```
 
