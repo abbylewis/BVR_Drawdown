@@ -458,7 +458,7 @@ dev.off()
 Step 7: Stats for paper
 ```{r}
 #Turnover dates
-surf%>%
+turnover_dates <- surf%>%
   rename(surf_temp = Reading)%>%
   select(-Sensor_depth)%>%
   left_join(bot%>%rename(bot_temp=Reading))%>%
@@ -469,27 +469,33 @@ surf%>%
   summarize(turnover=first(Date[surf_temp-bot_temp<1]))
 
 #How much earlier was turnover?
-yday("2022-11-6")-yday("2021-10-19")
+yday(turnover_dates$turnover[which(turnover_dates$Year == 2021)]) - yday(turnover_dates$turnover[which(turnover_dates$Year == 2022)])
 
-vw_temp_df%>%
+mean_temps <- vw_temp_df%>%
   filter(month(Date)%in%c(7))%>%
   group_by(Year)%>%
   dplyr::summarise(mean = mean(vw_temp, na.rm = T),
                    sd = sd(vw_temp, na.rm = T))
-22.44-19.70
 
-buoy_max%>%
+# change in vw_temp
+mean_temps$mean[which(mean_temps$Year == 2021)] - mean_temps$mean[which(mean_temps$Year == 2022)]
+
+mean_buoy <- buoy_max%>%
   filter(month(Date)%in%c(7))%>%
   mutate(Year = year(Date))%>%
   group_by(Year)%>%
   dplyr::summarise(mean = mean(max, na.rm = T),
                    sd = sd(max, na.rm = T))
-(0.01260153-0.01007704)/0.01007704
 
-schmidt_df%>%
+# change in buoyancy frequency
+((mean_buoy$mean[which(mean_buoy$Year == 2022)] - mean_buoy$mean[which(mean_buoy$Year == 2021)])/mean_buoy$mean[which(mean_buoy$Year == 2021)]) 
+
+mean_schmidt <- schmidt_df%>%
   filter(month(Date)%in%c(7))%>%
   group_by(Year)%>%
   dplyr::summarise(mean = mean(Schmidt, na.rm = T),
                    sd = sd(Schmidt, na.rm = T))
-(124.55-66.87)/124.55
+
+# change in schmidt stability
+((mean_schmidt$mean[which(mean_schmidt$Year == 2021)] - mean_schmidt$mean[which(mean_schmidt$Year == 2022)])/mean_schmidt$mean[which(mean_schmidt$Year == 2021)]) 
 ```
