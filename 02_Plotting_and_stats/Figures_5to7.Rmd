@@ -52,6 +52,9 @@ theme_set(
         legend.text=element_text(size=7)
         )
   )
+
+# Make a directory for Figures if there isn't one
+if (!dir.exists("../Figs")){dir.create("../Figs")}
 ```
 
 

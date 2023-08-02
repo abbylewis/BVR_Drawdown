@@ -43,6 +43,9 @@ lines = data.frame(Dates = as.Date(c("2022-06-28", "2022-05-19")), desc = c("clo
 lines_rect = lines%>%
   select(-type)%>%
   pivot_wider(names_from = desc, values_from = Dates)
+
+# Make a directory for Figures if there isn't one
+if (!dir.exists("../Figs")){dir.create("../Figs")}
 ```
 
 
@@ -58,7 +61,7 @@ schmidt_fig = schmidt_df%>%
   scale_fill_manual(values = c("black","#00F7FF"))+
   scale_color_manual(values = c("black","#0800FA"))+
   geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
-  ylab("Schmidt stability (J/m^2)")+
+  ylab(expression(paste("Schmidt stability ", "(", J~m^-2, ")")))+
   theme_bw()+
   scale_x_date(date_breaks = "2 month", date_labels =  "%b")+
   theme(axis.title.x = element_blank(),

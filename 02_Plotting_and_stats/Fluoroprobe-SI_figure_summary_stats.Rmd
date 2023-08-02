@@ -20,6 +20,9 @@ library(lubridate)
 
 flo_metrics <- read.csv("../Processed_data/Fluora_bvr.csv")%>%
   mutate(Date = as.Date(Date))
+
+# Make a directory for Figures if there isn't one
+if (!dir.exists("../Figs")){dir.create("../Figs")}
 ```
 
 

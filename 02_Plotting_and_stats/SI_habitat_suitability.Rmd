@@ -15,6 +15,9 @@ library(tidyverse)
 library(lubridate)
 
 df.final <- read_csv("../Processed_data/CTD trimmed.csv")
+
+# Make a directory for Figures if there isn't one
+if (!dir.exists("../Figs")){dir.create("../Figs")}
 ```
 
 
