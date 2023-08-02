@@ -45,7 +45,7 @@ oxy%>%
               fill = "grey40", data = lines_rect, alpha = 0.2)+
   geom_point(aes(x = Date_22, y = tdo3))+
   geom_line(aes(x = Date_22, y = tdo3, lty = Year))+
-  ylab("Temperature at which DO > 3")+
+  ylab("Temperature at which DO > 3 mg/L")+
   scale_linetype_manual(values = c("solid","dashed"))+
   theme_bw()+
   theme(axis.title.x = element_blank())
@@ -61,7 +61,7 @@ oxy%>%
               fill = "grey40", data = lines_rect, alpha = 0.2)+
   geom_point(aes(x = Date_22, y = Depth_m))+
   geom_line(aes(x = Date_22, y = Depth_m, lty = Year))+
-  ylab("Depth at which DO > 3")+
+  ylab("Depth at which DO > 3 mg/L")+
   scale_linetype_manual(values = c("solid","dashed"))+
   scale_y_reverse(lim = c(NA,0))+
   theme_bw()+

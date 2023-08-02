@@ -65,9 +65,9 @@ cat_long=bvr_pre_05APR21%>%
   rbind(.,bvr_post_05APR21)%>%
   filter(!is.na(Sensor_depth),
          year(DateTime)%in% c(2021,2022))%>%
-  select(-Offset_before_05APR21, -Offset_after_05APR21, -Distance_above_sediments)%>%
+  select(-Offset_before_05APR21, -Offset_after_05APR21)%>%
   mutate(Reservoir_depth=Depth_m_13+0.5)%>%
-  select(Reservoir, Site,DateTime, Reading, Sensor_depth, Rounded_depth_hundreth, Depth_m_13, Reservoir_depth)
+  select(Reservoir, Site,DateTime, Reading, Sensor_depth, Rounded_depth_hundreth, Depth_m_13, Reservoir_depth, Distance_above_sediments)
 
 write.csv(cat_long,"../Processed_data/BVR_longoutput.csv", row.names = F)
 
@@ -81,7 +81,8 @@ catwalk_format = cat_long%>%
   mutate(Reservoir_depth = mean(Reservoir_depth))%>%
   group_by(Date, Sensor_depth)%>%
   dplyr::summarize(Reading=mean(Reading,na.rm = T),
-                   Reservoir_depth = unique(Reservoir_depth))
+                   Reservoir_depth = unique(Reservoir_depth),
+                   Distance_above_sediments = unique(Distance_above_sediments))
 ```
 
 
@@ -135,8 +136,7 @@ Step 5: Calculate maximum buoyancy frequency
 #Calculate buoyancy frequency each day
 buoyancy_raw = catwalk_format%>%
   filter(!is.na(Reading))%>%
-  mutate(Depth_simple = floor(Sensor_depth))%>%
-  group_by(Date,Depth_simple)%>%
+  group_by(Date,Distance_above_sediments)%>%
   dplyr::summarize(Temp_C = mean(Reading),
             Depth_m = mean(Sensor_depth))%>%
   arrange(Date,Depth_m)%>%
@@ -186,18 +186,13 @@ write.csv(vw_temp_df, "../Processed_data/VW_temp.csv", row.names = F)
 
 Step 7: Calculate thermocline depths
 ```{r}
-thermo_raw = catwalk_format%>%
+thermo_raw <- catwalk_format%>%
   filter(!is.na(Reading))%>%
-  mutate(Depth_simple = floor(Sensor_depth))%>%
-  group_by(Date,Depth_simple)%>%
+  group_by(Date,Distance_above_sediments)%>%
   dplyr::summarize(Temp_C = mean(Reading),
             Depth_m = mean(Sensor_depth),
             Reservoir_depth = mean(Reservoir_depth))%>%
-  arrange(Date,Depth_m)%>%
   group_by(Date)%>%
-  filter((Depth_m - lag(Depth_m) > 0.4)|
-           (Depth_m - lag(Depth_m) < 0)|
-           is.na(lag(Depth_m))) %>%
   dplyr::summarize(thermo = thermo.depth(Temp_C, Depth_m),
             Reservoir_depth = mean(Reservoir_depth))
 
@@ -211,8 +206,8 @@ flexible_bathy = cat_depths%>%
   mutate(Reservoir = "BVR")%>%
   full_join(bathy)%>%
   group_by(Date)%>%
-  mutate(Depth_m = Depth_m - (max(Depth_m)-unique(WaterLevel)))%>%
-  filter(Depth_m>=-1)
+  mutate(Depth_m = Depth_m - (max(Depth_m)-unique(WaterLevel)) + 1)%>%
+  filter(Depth_m>=-1) #Because we're now adjusting for surface volume
 
 meta_ratio = flexible_bathy%>%
   left_join(thermo_raw)%>%
