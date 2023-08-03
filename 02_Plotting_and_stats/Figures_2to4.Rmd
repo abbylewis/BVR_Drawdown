@@ -38,14 +38,14 @@ weather_sum  <- read_csv("../Processed_data/Weather_sum.csv")
 thermo_raw <- read_csv("../Processed_data/thermocline_depth.csv")
 
 # Set lines
-lines = data.frame(Dates = as.Date(c("2022-06-28", "2022-05-19")), 
+lines <- data.frame(Dates = as.Date(c("2022-06-28", "2022-05-19")), 
                    desc = c("closed","opened"), 
                    type = c("close","open"),
                    status = c("init","init"), 
                    Year = 2022,
                    year_class = "2022")
 # Re-format for rectangle instead of discrete lines
-lines_rect = lines%>%
+lines_rect <- lines%>%
   select(-type)%>%
   pivot_wider(names_from = desc, values_from = Dates)
 
@@ -56,7 +56,7 @@ if (!dir.exists("../Figs")){dir.create("../Figs")}
 
 Step 2: Plot lake physics metrics (Schmidt, BF, VW temp, surface temp)
 ```{r}
-schmidt_fig = schmidt_df%>%
+schmidt_fig <- schmidt_df%>%
   filter(Year %in% c(2021,2022),
          !is.na(Schmidt))%>%
   mutate(Year = as.factor(Year))%>%
@@ -73,7 +73,7 @@ schmidt_fig = schmidt_df%>%
         legend.position = "none")
 schmidt_fig
 
-buoy_fig = buoy_max%>%
+buoy_fig <- buoy_max%>%
   mutate(Year = as.factor(year(Date)))%>%
   filter(Year %in% c(2021,2022))%>%
   ggplot()+
@@ -89,7 +89,7 @@ buoy_fig = buoy_max%>%
         legend.position = "none")
 buoy_fig
 
-water = vw_temp_df%>%
+water <- vw_temp_df%>%
   filter(Year %in% c(2021,2022),
          !is.na(vw_temp))%>%
   mutate(Year = year(Date),
@@ -107,7 +107,7 @@ water = vw_temp_df%>%
         legend.position = "none")
 water
 
-surf = cat_long%>%
+surf <- cat_long%>%
   mutate(Date = as.Date(DateTime),
          Year = year(Date))%>%
   filter(Sensor_depth>0)%>%
@@ -119,7 +119,7 @@ surf = cat_long%>%
   filter(Year %in% c(2021,2022))
 year(surf$Date_22) = 2022
 
-surf_plot_save = surf%>%
+surf_plot_save <- surf%>%
   mutate(Year = as.factor(Year))%>%
   ggplot()+
   geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
@@ -138,7 +138,7 @@ surf_plot_save
 
 Step 3: Plot meteorology
 ```{r}
-temp = weather_sum%>%
+temp <- weather_sum%>%
   mutate(Year = as.factor(Year))%>%
   ggplot()+
   geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
@@ -151,7 +151,7 @@ temp = weather_sum%>%
   scale_x_date(date_breaks = "2 month", date_labels =  "%b")+
   theme(axis.title.x = element_blank())
 
-air_temp_plot = weather_sum%>%
+air_temp_plot <- weather_sum%>%
   mutate(Year = year(Date),
          Air_Temp = AirTemp_C_Average,
          Date_22 = as.Date(Date_22))%>%
@@ -168,7 +168,7 @@ air_temp_plot%>%
   summarize(mean = mean(Air_Temp),
             sd = sd(Air_Temp))
 
-legend = get_legend(temp)
+legend <- get_legend(temp)
 jpeg("../Figs/Figure_4.jpg",res = 300, units = "in",width = 8, height = 6)
 plot_grid(temp+theme(legend.position = "none"),surf_plot_save,water,buoy_fig,schmidt_fig,legend, align = "hv",labels = list("a","b","c","d","e",""),nrow=2,ncol=3,axis = "rltb")
 dev.off()
@@ -207,9 +207,9 @@ dev.off()
 
 Step 5: Create a heatmap of water temperature over time
 ```{r}
-var = c("Reading") #Temp_C
+var <- c("Reading") #Temp_C
 
-filt_no_surf = cat_long%>%
+filt_no_surf <- cat_long%>%
   mutate(Date = as.Date(DateTime),
          Year = year(Date),
          Height = Reservoir_depth-Sensor_depth,
@@ -222,25 +222,25 @@ filt_no_surf = cat_long%>%
   dplyr::summarize(Reading=mean(Reading, na.rm = T))%>%
   dplyr::rename(Sensor_depth = Rounded_depth_tenth)
 
-surf = cat_long%>%
+surf <- cat_long%>%
   mutate(Date = as.Date(DateTime),
          Year = year(Date))%>%
   group_by(Date, Year)%>%
   dplyr::summarize(Reading = Reading[which.min(Sensor_depth)],
             Sensor_depth = mean(Reservoir_depth))
 
-bot = cat_long%>%
+bot <- cat_long%>%
   mutate(Date = as.Date(DateTime),
          Year = year(Date))%>%
   group_by(Date, Year)%>%
   dplyr::summarize(Reading = Reading[which.max(Sensor_depth)],
             Sensor_depth = 0)
   
-filt = filt_no_surf%>%
+filt <- filt_no_surf%>%
   full_join(surf)%>%
   full_join(bot)
 
-depth_sum = cat_long%>%
+depth_sum <- cat_long%>%
   mutate(Date = as.Date(DateTime),
          Year = year(Date))%>%
   filter(Reservoir == "BVR")%>%
@@ -252,10 +252,10 @@ depth_sum = cat_long%>%
   filter(!Year == 2020)%>%
   mutate(max = max(Reservoir_depth))
 
-Years = c(2021,2022)
-interp = data.frame(x = NA, y = NA, z = NA, Site = NA)
+Years <- c(2021,2022)
+interp <- data.frame(x = NA, y = NA, z = NA, Site = NA)
 for(year in Years){
-    bvr<- filt%>%
+    bvr <- filt%>%
       filter(Year == year)%>%
       ungroup()%>%
       dplyr::mutate(random = sample(1:n(),n()))%>%
@@ -263,14 +263,18 @@ for(year in Years){
       filter(!is.na(Reading))
     
     if(nrow(bvr)>0){
-      bvr_interp <- interp2xyz(interp(bvr$Date,bvr$Sensor_depth,bvr[[var]],xo = seq(min(bvr$Date), max(bvr$Date), 1),yo = seq(min(bvr$Sensor_depth), max(bvr$Sensor_depth), by = .05), duplicate = "mean"),data.frame = T)
+      bvr_interp <- interp2xyz(interp(bvr$Date,bvr$Sensor_depth,bvr[[var]],
+                                      xo = seq(min(bvr$Date), max(bvr$Date), 1),
+                                      yo = seq(min(bvr$Sensor_depth), max(bvr$Sensor_depth), by = .05), 
+                                      duplicate = "mean"),
+                               data.frame = T)
       interp = interp%>%
         full_join(bvr_interp)
     }
     
 }
 
-sensor_depth_plot = filt_no_surf%>%
+sensor_depth_plot <- filt_no_surf%>%
   filter(Year%in% c(2021,2022))%>%
   group_by(Date)%>%
   filter(length(unique(Sensor_depth))<=11)%>%
@@ -279,10 +283,11 @@ sensor_depth_plot = filt_no_surf%>%
   unique()%>%
   mutate(Date=as.Date(paste0(Year,"-01-01")))
 
+custom_heatmap_palette <- c("#313695", "#4575b4", "#74add1","#abd9e9", "#e0f3f8", "#ffffbf", "#fee090","#fdae61", "#f46d43", "#d73027", "#a50026")
 
 #Heatmap
 jpeg(paste0("../Figs/BVR_catwalk_heatmap_2022.jpeg"),width = 8, height = 4, units = "in", res = 300)
-water_temp = interp%>%
+water_temp <- interp%>%
   mutate(x = as.Date(x, origin = "1970-01-01"),
          Year = year(x))%>%
   filter(!is.na(z))%>%
@@ -309,9 +314,7 @@ water_temp = interp%>%
   scale_linetype_manual(values = c("solid","84"),limits = c("Thermocline","Out-take pipe"),  name= NULL)+
   scale_fill_gradientn(name = "Water temperature\n(°C)",
                        limits = c(-1, 30),
-                       colours = c("#313695", "#4575b4", "#74add1",
-                                   "#abd9e9", "#e0f3f8", "#ffffbf", "#fee090",
-                                   "#fdae61", "#f46d43", "#d73027", "#a50026" ))
+                       colours = custom_heatmap_palette)
 print(water_temp)
 dev.off()
 ```
@@ -322,7 +325,7 @@ Step 6: Create a heatmap of DO over time
 df.final <- read.csv("../Processed_data/CTD trimmed.csv")%>%
   mutate(Date=as.Date(Date))
 
-sensor_depth = cat_long%>%
+sensor_depth <- cat_long%>%
   mutate(Year = year(DateTime),
          Date = as.Date(DateTime),
          max = max(Reservoir_depth))%>%
@@ -366,8 +369,6 @@ vars <- c("DO_mgL")
 names <- c("Dissolved Oxygen\n(mg/L)")
 Years <- 2021:2022
 Sites <- c(50)
-
-custom_heatmap_palette <- c("#313695", "#4575b4", "#74add1","#abd9e9", "#e0f3f8", "#ffffbf", "#fee090","#fdae61", "#f46d43", "#d73027", "#a50026")
 
 for(i in 1:length(vars)){
   var <- vars[i]

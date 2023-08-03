@@ -59,36 +59,36 @@ if (!dir.exists("../Figs")){dir.create("../Figs")}
 Code chunk 2: Load data
 ```{r Load and format chemistry data}
 #From Chem.Rmd
-chem_full = read.csv("../Processed_data/Chem at 0.1m.csv")%>%
+chem_full <- read.csv("../Processed_data/Chem at 0.1m.csv")%>%
   mutate(DateTime=as.Date(DateTime))
 
 # From physical metrics script
-thermo_depth = read.csv("../Processed_data/thermocline_depth.csv")%>%
+thermo_depth <- read.csv("../Processed_data/thermocline_depth.csv")%>%
   filter(year(Date)%in%c(2022,2021))
 
 # From CTD data processing script
-light = read.csv("../Processed_data/attenuation_calc.csv")%>%
+light <- read.csv("../Processed_data/attenuation_calc.csv")%>%
   filter(year(Date)%in%c(2021,2022))
 
-ctd = read.csv("../Processed_data/CTD at 0.1m.csv")%>%
+ctd <- read.csv("../Processed_data/CTD at 0.1m.csv")%>%
   filter(year(Date)%in%c(2021,2022))
 
 # From GHG script
-ghg = read.csv("../Processed_data/GHG at 0.1m.csv")%>%
+ghg <- read.csv("../Processed_data/GHG at 0.1m.csv")%>%
   filter(year(DateTime)%in%c(2021,2022))
 
 # From metals script
-metals = read.csv("../Processed_data/Metals at 0.1m.csv")%>%
+metals <- read.csv("../Processed_data/Metals at 0.1m.csv")%>%
   filter(year(Date)%in%c(2021,2022))
 
 # From fluora script
 fluora_surface <- read.csv("../Processed_data/Fluora_surface.csv")%>%
   filter(year(DateTime)%in%c(2021,2022))
 
-cmax_depth = read.csv("../Processed_data/FP_CmaxDepth.csv")%>%
+cmax_depth <- read.csv("../Processed_data/FP_CmaxDepth.csv")%>%
   filter(year(Date)%in%c(2021,2022))
 
-peak_width = read.csv("../Processed_data/FP_PeakWidth.csv")%>%
+peak_width <- read.csv("../Processed_data/FP_PeakWidth.csv")%>%
   filter(year(Date)%in%c(2021,2022))
 ```
 
@@ -96,7 +96,7 @@ peak_width = read.csv("../Processed_data/FP_PeakWidth.csv")%>%
 Code chunk 3: Compile Stats for Figure 5
 ```{r bloom effects stats}
 #Combine all data
-figure_5_data = chem_full%>%
+figure_5_data <- chem_full%>%
   select(DateTime, TP_ugL, TN_ugL,PO4_ugL,DOC_mgL,DIC_mgL,NO3NO2_ugL,NH4_ugL, NO3NO2_ugL)%>%
   full_join(fluora_surface%>%mutate(DateTime = as.Date(DateTime)))%>%
   full_join(ghg%>%mutate(DateTime = as.Date(DateTime)))%>%
@@ -115,14 +115,14 @@ figure_5_data = chem_full%>%
                         labels=c("Total P","Phosphate","Total N","Ammonium","Total phytoplankton", "Cyanobacteria", "DOC", "CO2")))
 
 #Calculate maxes
-maxes = figure_5_data%>%
+maxes <- figure_5_data%>%
   group_by(name,color, Year)%>%
   summarize(max_date = DateTime[which.max(value)],
             min_date = DateTime[which.min(value)])%>%
   filter(Year=="2022")%>%
   mutate(max_date = ifelse(name %in% c("thermo","Zeu","DO_mgL"),min_date,max_date))
 
-maxes_sum = figure_5_data%>%
+maxes_sum <- figure_5_data%>%
   group_by(name,color, Year)%>%
   summarize(max = max(value))%>%
   group_by(name,color)%>%
@@ -209,7 +209,7 @@ ggsave("../Figs/Figure_5.jpeg", figure_5, dpi = 300, width = 6, height = 5, bg =
 
 Code chunk 5: Compile stats for Figure 6
 ```{r phytos stats}
-figure_6_data = fluora_surface%>%
+figure_6_data <- fluora_surface%>%
   mutate(DateTime = as.Date(DateTime))%>%
   full_join(light%>%mutate(DateTime = as.Date(Date))%>%select(-Date))%>%
   full_join(ctd%>%mutate(DateTime = as.Date(Date))%>%select(-Date,-Year,-Depth_m))%>%
@@ -235,7 +235,7 @@ figure_6_data = fluora_surface%>%
          )
 
 #Calculate maxes
-maxes = figure_6_data%>%
+maxes <- figure_6_data%>%
   group_by(name,color, Year)%>%
   summarize(max_date = DateTime[which.max(value)],
             min_date = DateTime[which.min(value)])%>%
@@ -311,7 +311,7 @@ ggsave("../Figs/Figure_6.jpeg", figure_6, dpi = 300, width = 6, height = 4, bg =
 Code chunk 7: Compile stats for Figure 7
 ```{r Stats for Oxygen figure}
 #combine relevant data
-figure_7_data = thermo_depth%>%
+figure_7_data <- thermo_depth%>%
   mutate(DateTime = as.Date(Date))%>%
   select(-Date)%>%
   full_join(ctd%>%mutate(DateTime = as.Date(Date))%>%select(-Date,-Year,-Depth_m))%>%
@@ -330,14 +330,14 @@ figure_7_data = thermo_depth%>%
                         labels = c("thermo","DOsat_percent","Total Fe","Total Mn","Soluble Fe","Soluble Mn")))
 
 #Calculate maximum values
-maxes = figure_7_data%>%
+maxes <- figure_7_data%>%
   group_by(name, color,Year)%>%
   summarize(max_date = DateTime[which.max(value)],
             min_date = DateTime[which.min(value)])%>%
   filter(Year=="2022")%>%
   mutate(max_date = ifelse(name %in% c("thermo","Zeu","DO_mgL","DOsat_percent"),min_date,max_date))
 
-maxes_sum = figure_7_data%>%
+maxes_sum <- figure_7_data%>%
   group_by(name,color, Year)%>%
   summarize(max = max(value),
             max_date = DateTime[which.max(value)],
@@ -347,7 +347,7 @@ maxes_sum = figure_7_data%>%
          pct = (max[Year==2022]-max[Year==2021])/max[Year==2021]*100,
          date_dif = max_date[Year==2022]-(max_date[Year==2021]+365))
 
-mins_sum = figure_7_data%>%
+mins_sum <- figure_7_data%>%
   group_by(name,color, Year)%>%
   summarize(min = min(value),
             min_date = DateTime[which.min(value)],

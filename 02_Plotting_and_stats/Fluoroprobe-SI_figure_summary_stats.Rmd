@@ -32,7 +32,7 @@ Step 2: Compare with photic zone depth and create figure for SI
 pz <- read_csv("../Processed_data/attenuation_calc.csv") %>%
   mutate(Date = date(Date))
 
-Cmax = read.csv("../Processed_data/FP_CmaxDepth.csv")
+Cmax <- read.csv("../Processed_data/FP_CmaxDepth.csv")
 Cmax <- tibble(Cmax) %>%
   mutate(Date = date(Date))
 

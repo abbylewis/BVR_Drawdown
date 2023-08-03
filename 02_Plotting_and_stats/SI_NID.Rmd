@@ -5,16 +5,21 @@ date: "2023-06-09"
 output: html_document
 ---
 
+This file loads data from the U.S. National Inventory of Dams (NID) and creates a supplemental figure showing the proportion of dams with surface area < 1 km^2
+
+Step 1: Set-up
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-# Make a directory for Figures if there isn't one
-if (!dir.exists("../Figs")){dir.create("../Figs")}
-```
-
-```{r}
+# Load package
 library(tidyverse)
 
+# Make a directory for Figures if there isn't one
+if(!dir.exists("../Figs")) {dir.create("../Figs")}
+```
+
+Step 2: Figure
+```{r}
 dams <- read_csv("../Raw_external_data/NID_YearCompleted_SurfaceArea_State.csv") %>% 
   rename(SURFACE_AREA = "SURFACE_AREA (acres)") %>% 
   filter(SURFACE_AREA != 0)
@@ -32,7 +37,6 @@ dam_facts <- dams %>%
 quantile(dams$SURFACE_AREA/247.1, probs=seq(.925,.926,0.0001))
 #92.5% of dams in the US are 1 km2 or smaller
 
-label = data.frame(x = 1.5, y = 15000, label = as.character(as.expression(paste("1  km^{2}"))))
 jpeg("../Figs/NID_histogram.jpg",res=300,width = 3, height=3, units = "in")
 dams%>%
   ggplot(aes(x = SURFACE_AREA/247))+
