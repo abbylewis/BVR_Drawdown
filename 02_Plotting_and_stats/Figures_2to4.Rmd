@@ -36,6 +36,8 @@ cat_long <- read_csv("../Processed_data/BVR_longoutput.csv")%>%
 meta_ratio <- read_csv("../Processed_data/meta_ratio.csv")
 weather_sum  <- read_csv("../Processed_data/Weather_sum.csv")
 thermo_raw <- read_csv("../Processed_data/thermocline_depth.csv")
+df.final <- read.csv("../Processed_data/CTD trimmed.csv")%>%
+  mutate(Date=as.Date(Date))
 
 # Set lines
 lines <- data.frame(Dates = as.Date(c("2022-06-28", "2022-05-19")), 
@@ -322,9 +324,6 @@ dev.off()
 
 Step 6: Create a heatmap of DO over time
 ```{r}
-df.final <- read.csv("../Processed_data/CTD trimmed.csv")%>%
-  mutate(Date=as.Date(Date))
-
 sensor_depth <- cat_long%>%
   mutate(Year = year(DateTime),
          Date = as.Date(DateTime),
