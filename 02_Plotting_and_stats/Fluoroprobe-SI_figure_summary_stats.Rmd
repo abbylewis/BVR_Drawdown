@@ -73,9 +73,9 @@ ggplot(data = subset(cmpz_1, cmpz_1$spectral_group != "crypto_rel_pz"), aes(x = 
   geom_boxplot()+
   geom_hline(yintercept = 0)+
   theme_bw()+
-  ggtitle("Photic zone = 1% light; this is ONLY May-July")+
+  ggtitle("")+
   xlab("Spectral group")+
-  ylab("Cmax depth standardized to photic zone depth")+
+  ylab(expression(paste(C[max], " depth standardized to photic zone depth",sep = "")))+
   labs(fill = "Year")+
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
   scale_x_discrete(labels=c("green_rel_pz" = "Green algae", "cyano_rel_pz" = "Cyanobacteria",
