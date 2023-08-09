@@ -14,12 +14,14 @@ library(tidyverse)
 ghg <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/551/7/38d72673295864956cccd6bbba99a1a3")
 
 export = ghg%>%
-  filter(Site==50,
-         Depth_m ==0.1,
-         Reservoir=="BVR")%>%
-  group_by(DateTime)%>%
-  summarize(CH4_umolL=mean(CH4_umolL, na.rm = T),
-            CO2_umolL=mean(CO2_umolL, na.rm = T))
+  filter(Site == 50,
+         Depth_m == 0.1,
+         Reservoir == "BVR")%>%
+  mutate(Date = as.Date(DateTime))%>%
+  select(-DateTime)%>%
+  group_by(Date)%>%
+  summarize(CH4_umolL = mean(CH4_umolL, na.rm = T),
+            CO2_umolL = mean(CO2_umolL, na.rm = T))
 
 write.csv(export,"../Processed_data/GHG at 0.1m.csv")
 ```

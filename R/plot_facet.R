@@ -27,10 +27,10 @@ plot_facet <- function(data, var_name, xint_1, xint_2 = NULL, color, ylab, rever
     geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),
               fill = "grey40", data = lines_rect, alpha = 0.2)+
     {if(!var_name=="thermo") {
-      geom_point(aes(color = color,x = DateTime, y = value))}
+      geom_point(aes(color = color,x = Date, y = value))}
     }+
-    geom_point(aes(x = DateTime),y=NA, data = data)+
-    geom_line(aes(x = DateTime, y = value, color = color, linetype = color))+
+    geom_point(aes(x = Date),y=NA, data = data)+
+    geom_line(aes(x = Date, y = value, color = color, linetype = color))+
     geom_vline(aes(xintercept = xint_1, color = color), lwd = 2, alpha = 0.3, show.legend = F)+
     {if(!is_empty(xint_2)) {
       geom_vline(aes(xintercept = xint_2, color = color), 

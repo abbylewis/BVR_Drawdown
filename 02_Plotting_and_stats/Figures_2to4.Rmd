@@ -34,10 +34,10 @@ vw_temp_df <- read_csv("../Processed_data/VW_temp.csv")
 cat_long <- read_csv("../Processed_data/BVR_longoutput.csv")%>%
   filter(Sensor_depth>0)
 meta_ratio <- read_csv("../Processed_data/meta_ratio.csv")
-weather_sum  <- read_csv("../Processed_data/Weather_sum.csv")
+weather_sum  <- read_csv("../Processed_data/Weather_sum.csv")%>%
+  mutate(Date_22 = DOY + as.Date("2021-12-31"))
 thermo_raw <- read_csv("../Processed_data/thermocline_depth.csv")
-df.final <- read.csv("../Processed_data/CTD trimmed.csv")%>%
-  mutate(Date=as.Date(Date))
+df.final <- read_csv("../Processed_data/CTD trimmed.csv")
 
 # Set lines
 lines <- data.frame(Dates = as.Date(c("2022-06-28", "2022-05-19")), 
@@ -61,7 +61,8 @@ Step 2: Plot lake physics metrics (Schmidt, BF, VW temp, surface temp)
 schmidt_fig <- schmidt_df%>%
   filter(Year %in% c(2021,2022),
          !is.na(Schmidt))%>%
-  mutate(Year = as.factor(Year))%>%
+  mutate(Year = as.factor(Year),
+         Date_22 = DOY + as.Date("2021-12-31"))%>%
   ggplot()+
   geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
   geom_point(aes(x = Date_22,y = Schmidt, fill = Year, color = Year), shape = 21, stroke = .5, size = 1.5)+
@@ -76,7 +77,8 @@ schmidt_fig <- schmidt_df%>%
 schmidt_fig
 
 buoy_fig <- buoy_max%>%
-  mutate(Year = as.factor(year(Date)))%>%
+  mutate(Year = as.factor(year(Date)),
+         Date_22 = DOY + as.Date("2021-12-31"))%>%
   filter(Year %in% c(2021,2022))%>%
   ggplot()+
   geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
@@ -95,7 +97,8 @@ water <- vw_temp_df%>%
   filter(Year %in% c(2021,2022),
          !is.na(vw_temp))%>%
   mutate(Year = year(Date),
-         Year = as.factor(Year))%>%
+         Year = as.factor(Year),
+         Date_22 = DOY + as.Date("2021-12-31"))%>%
   ggplot()+
   geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
   geom_point(aes(x = Date_22, y = vw_temp, fill = Year, color = Year),shape = 21, stroke = .5, size = 1.5)+
@@ -116,10 +119,10 @@ surf <- cat_long%>%
   group_by(Date, Year)%>%
   dplyr::summarize(Reading = Reading[which.min(Sensor_depth)],
             Sensor_depth = mean(Reservoir_depth))%>%
-  mutate(Date_22 = Date,
-         Year = year(Date))%>%
+  mutate(Year = year(Date),
+         DOY = yday(Date),
+         Date_22 = DOY + as.Date("2021-12-31"))%>% #Making a date column where year is the same to standardize x-axes
   filter(Year %in% c(2021,2022))
-year(surf$Date_22) = 2022
 
 surf_plot_save <- surf%>%
   mutate(Year = as.factor(Year))%>%
@@ -141,7 +144,8 @@ surf_plot_save
 Step 3: Plot meteorology
 ```{r}
 temp <- weather_sum%>%
-  mutate(Year = as.factor(Year))%>%
+  mutate(Year = as.factor(Year),
+         Date_22 = DOY + as.Date("2021-12-31"))%>%
   ggplot()+
   geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
   geom_point(aes(x = Date_22, y = AirTemp_C_Average, fill = Year, color = Year), shape = 21, stroke = .5, size = 1.5)+
@@ -156,7 +160,8 @@ temp <- weather_sum%>%
 air_temp_plot <- weather_sum%>%
   mutate(Year = year(Date),
          Air_Temp = AirTemp_C_Average,
-         Date_22 = as.Date(Date_22))%>%
+         DOY = yday(Date),
+         Date_22 = DOY + as.Date("2021-12-31"))%>% #Making a date column where year is the same to standardize x-axes
   filter(Year %in% c(2021,2022),
          !is.na(AirTemp_C_Average))%>%
   mutate(Year = as.factor(Year))%>%

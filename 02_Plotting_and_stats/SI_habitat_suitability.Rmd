@@ -29,9 +29,9 @@ oxy <- df.final%>%
   summarize(tdo3 = Temp_C[which.min(Depth_m)],
             Depth_m = min(Depth_m))%>%
   mutate(Year = as.factor(year(Date)),
-         Date_22 = Date)%>%
+         DOY = yday(Date),
+         Date_22 = DOY+as.Date("2021-12-31"))%>%
   filter(year(Date)%in% c(2021,2022))
-year(oxy$Date_22)=2022
 
 lines_rect <- data.frame(closed = as.Date("2022-06-28"), opened = as.Date("2022-05-19"), Year = 2022, year_class = "2022")
 

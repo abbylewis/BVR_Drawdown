@@ -30,10 +30,8 @@ weather_sum = met%>%
   group_by(Date,Year)%>%
   summarize(Rain_Total_mm = mean(Rain_Total_mm, na.rm = T),
             AirTemp_C_Average = mean(AirTemp_C_Average,na.rm=T),
-            WindSpeed_Average_m_s = mean(WindSpeed_Average_m_s,na.rm=T))
-
-weather_sum$Date_22 = weather_sum$Date
-year(weather_sum$Date_22) = 2022
+            WindSpeed_Average_m_s = mean(WindSpeed_Average_m_s,na.rm=T))%>%
+  mutate(DOY = yday(Date))
 
 write.csv(weather_sum, "../Processed_data/Weather_sum.csv", row.names = F)
 ```

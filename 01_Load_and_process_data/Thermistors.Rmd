@@ -114,23 +114,22 @@ Step 4: Calculate Schmidt stability
 ```{r}
 #Calculate schmidt stability each day
 schmidts <- numeric(length(unique(catwalk_format$Date)))
-for(date in unique(catwalk_format$Date)){
+dates <- unique(catwalk_format$Date)
+for(i in 1:length(dates)) {
   temps <- catwalk_format%>%
-    filter(Date == date)
+    filter(Date == dates[i])
   baths <- flexible_bathy%>%
-    filter(Date==date)
-  schmidts <- c(schmidts, 
-                schmidt.stability(wtr = temps$Reading, 
+    filter(Date==dates[i])
+  schmidts[i] <- schmidt.stability(wtr = temps$Reading, 
                                   depths = temps$Sensor_depth, 
                                   bthA = baths$SA_m2, 
                                   bthD = baths$Depth_m, 
                                   sal = rep(0,length(temps$Reading))
-                                  ))
+                                  )
 }
 schmidt_df = data.frame(Date = unique(catwalk_format$Date), Schmidt = schmidts)%>%
-  mutate(Year = year(Date))
-schmidt_df$Date_22 = schmidt_df$Date
-year(schmidt_df$Date_22)=2022
+  mutate(Year = year(Date),
+         DOY = yday(Date))
 
 write.csv(schmidt_df, "../Processed_data/Schmidt.csv", row.names = F)
 ```
@@ -152,10 +151,8 @@ buoyancy_raw <- catwalk_format%>%
 
 buoy_max <- buoyancy_raw%>%
   group_by(Date)%>%
-  dplyr::summarize(max = max(buoy_freq))
-
-buoy_max$Date_22 <- buoy_max$Date
-year(buoy_max$Date_22) <- 2022
+  dplyr::summarize(max = max(buoy_freq))%>%
+  mutate(DOY = yday(Date))
 
 write.csv(buoy_max, "../Processed_data/BF.csv", row.names = F)
 ```
@@ -192,10 +189,8 @@ for(date in unique(catwalk_format_with_zero$Date)){
 }
 
 vw_temp_df <- data.frame(Date = unique(catwalk_format$Date), vw_temp = vw_temp)%>%
-  mutate(Year = year(Date))
-
-vw_temp_df$Date_22 <- vw_temp_df$Date
-year(vw_temp_df$Date_22) <- 2022
+  mutate(Year = year(Date),
+         DOY = yday(Date))
 
 write.csv(vw_temp_df, "../Processed_data/VW_temp.csv", row.names = F)
 ```
@@ -241,10 +236,8 @@ meta_ratio <- flexible_bathy%>%
             correction_hypo = unique(thermo-depth_above_thermo)*Volume_L[Depth_m==depth_above_thermo],
             hypo_volume = unique(hypo_and_above-correction_hypo),
             epi_hypo_ratio = unique(epi_volume/hypo_volume)
-  )
-
-meta_ratio$Date_22 <- meta_ratio$Date
-year(meta_ratio$Date_22) <- 2022
+  )%>%
+  mutate(DOY = yday(Date))
 
 write.csv(meta_ratio, "../Processed_data/meta_ratio.csv", row.names = F)
 ```

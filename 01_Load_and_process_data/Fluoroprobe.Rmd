@@ -27,13 +27,14 @@ fluora <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/272/7/001cb51
 Step 2: Select and export surface data
 ```{r}
 fluora_surface=fluora%>%
-  filter(Reservoir=="BVR",
-         Site==50,
-         Depth_m<1)%>%
-  mutate(DateTime = as.Date(DateTime))%>%
-  group_by(DateTime)%>%
+  filter(Reservoir == "BVR",
+         Site == 50,
+         Depth_m < 1)%>%
+  mutate(Date = as.Date(DateTime))%>%
+  select(-DateTime)%>%
+  group_by(Date)%>%
   mutate(min_depth = min(Depth_m))%>%
-  filter(Depth_m==min_depth)
+  filter(Depth_m == min_depth)
 
 write.csv(fluora_surface,"../Processed_data/Fluora_surface.csv", row.names = F)
 ```
@@ -43,18 +44,21 @@ Step 3: Calculate and export Cmax depth
 ```{r}
 # Data wrangling to get dataframe ready to calculate metrics
 flo_metrics = fluora%>%
+  mutate(Date = as.Date(DateTime))%>%
+  select(-DateTime)%>%
   select(Reservoir, 
-         Site, Depth_m, 
-         DateTime, 
+         Site, 
+         Depth_m, 
+         Date, 
          GreenAlgae_ugL, 
          Bluegreens_ugL, 
          BrownAlgae_ugL, 
          MixedAlgae_ugL, 
          YellowSubstances_ugL, 
          TotalConc_ugL)%>%
-  filter(Reservoir == "BVR", Site == 50,
-         year(DateTime)%in% c(2021,2022))%>%
-  mutate(Date= as.Date(DateTime)) 
+  filter(Reservoir == "BVR", 
+         Site == 50,
+         year(Date)%in% c(2021,2022))
 write.csv(flo_metrics,"../Processed_data/Fluora_bvr.csv", row.names = F)
 
 # Calculate Cmax depth for each group in a for loop
@@ -67,7 +71,7 @@ datez <- unique(flo_metrics$Date)
 for (i in 1:length(datez)){
   dat <- flo_metrics %>%
     filter(Date == datez[i])
-  dat <- dat[,c(11,5:8,10,3)]
+  dat <- dat[,c(4:8,10,3)]
   for (j in 2:6){
     if(all(dat[,j] == 0)){
       Cmax[i,j] <- NA
@@ -90,7 +94,7 @@ write.csv(Cmax_final, file = "../Processed_data/FP_CmaxDepth.csv", row.names = F
 Step 4: Calculate and export peak width
 ```{r}
 #data wrangling
-pw <- flo_metrics[,c(3,5:8,10,11)] %>%
+pw <- flo_metrics[,c(3:8,10)] %>%
   rename(green = GreenAlgae_ugL,
          brown = BrownAlgae_ugL,
          cyano = Bluegreens_ugL,
