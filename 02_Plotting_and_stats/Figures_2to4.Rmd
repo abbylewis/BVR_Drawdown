@@ -225,6 +225,7 @@ filt_no_surf <- cat_long%>%
   dplyr::rename(Sensor_depth = Rounded_depth_tenth)
 
 surf <- cat_long%>%
+  filter(Sensor_depth >= 0) %>%
   mutate(Date = as.Date(DateTime),
          Year = year(Date))%>%
   group_by(Date, Year)%>%
