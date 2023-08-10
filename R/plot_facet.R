@@ -26,7 +26,7 @@ plot_facet <- function(data, var_name, xint_1, xint_2 = NULL, color, ylab, rever
     ggplot()+
     geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),
               fill = "grey40", data = lines_rect, alpha = 0.2)+
-    {if(!var_name=="thermo") {
+    {if(!var_name=="thermo") { #thermocline depth is continuous, rather than discrete measurements
       geom_point(aes(color = color,x = Date, y = value))}
     }+
     geom_point(aes(x = Date),y=NA, data = data)+
