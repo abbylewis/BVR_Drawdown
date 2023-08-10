@@ -56,8 +56,6 @@ These scripts use data files in ./Processed_data (generated using the scripts in
    * Generate time-series line plots of variables of interest (Figures 5-7)
 * [Fluoroprobe - SI figure and summary stats.Rmd](02_Plotting_and_stats/Fluoroprobe-SI_figure_summary_stats.Rmd)
    * Calculate summary statistics for fluoroprobe data and create an SI figure
-* [Meteorology statisitics.R](02_Plotting_and_stats/Meteorology_statisitics.R)
-   * Generate summary statistics for meteorological data
 * [SI_habitat_suitability.Rmd](02_Plotting_and_stats/SI_habitat_suitability.Rmd)
    * Generate figures of habitat suitability for SI
 * [SI_NID.Rmd](02_Plotting_and_stats/SI_NID.Rmd)

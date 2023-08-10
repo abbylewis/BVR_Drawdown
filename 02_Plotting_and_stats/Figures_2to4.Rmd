@@ -38,6 +38,7 @@ weather_sum  <- read_csv("../Processed_data/Weather_sum.csv")%>%
   mutate(Date_22 = DOY + as.Date("2021-12-31"))
 thermo_raw <- read_csv("../Processed_data/thermocline_depth.csv")
 df.final <- read_csv("../Processed_data/CTD trimmed.csv")
+met_drawdown <- read_csv("../Processed_data/Weather_drawdown.csv")
 
 # Set lines
 lines <- data.frame(Dates = as.Date(c("2022-06-28", "2022-05-19")), 
@@ -488,4 +489,25 @@ mean_schmidt <- schmidt_df%>%
 
 # change in schmidt stability
 ((mean_schmidt$mean[which(mean_schmidt$Year == 2021)] - mean_schmidt$mean[which(mean_schmidt$Year == 2022)])/mean_schmidt$mean[which(mean_schmidt$Year == 2021)]) 
+
+
+#Meteorology
+
+# Average wind speed 
+avg_wind<- met_drawdown%>%
+  group_by(Year)%>%
+  summarise(mean_wind=mean(WindSpeed_Average_m_s, na.rm=T), 
+            sd_wind=sd(WindSpeed_Average_m_s, na.rm=T ))
+# Average air temperatures
+avg_AT <- met_drawdown%>%
+  group_by(Year) %>% 
+  summarise(mean_air=mean(AirTemp_C_Average, na.rm=T), sd_air=sd(AirTemp_C_Average, na.rm=T ))
+# Average daily precipitation 
+avg_rain <- met_drawdown%>%
+  mutate(Date = as.Date(DateTime))%>%
+  group_by(Date, Year)%>%
+  summarise(total_rain_day=sum(Rain_Total_mm))
+rain <- avg_rain%>%
+  group_by(Year)%>%
+  summarise(mean_rain=mean(total_rain_day, na.rm=T), sd_rain=sd(total_rain_day, na.rm=T))
 ```
