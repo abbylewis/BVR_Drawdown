@@ -18,8 +18,10 @@ Step 1: Load packages and FP data
 library(tidyverse)
 library(lubridate)
 
-flo_metrics <- read.csv("../Processed_data/Fluora_bvr.csv")%>%
-  mutate(Date = as.Date(Date))
+flo_metrics <- read_csv("../Processed_data/Fluora_bvr.csv")
+pw2 <- read_csv("../Processed_data/FP_PeakWidth.csv")
+pz <- read_csv("../Processed_data/attenuation_calc.csv")
+Cmax <- read_csv("../Processed_data/FP_CmaxDepth.csv")
 
 # Make a directory for Figures if there isn't one
 if (!dir.exists("../Figs")){dir.create("../Figs")}
@@ -28,14 +30,7 @@ if (!dir.exists("../Figs")){dir.create("../Figs")}
 
 Step 2: Compare with photic zone depth and create figure for SI
 ```{r}
-#read in light attenuation calculations and look @ Cmax relative to pz depth
-pz <- read_csv("../Processed_data/attenuation_calc.csv") %>%
-  mutate(Date = date(Date))
-
-Cmax <- read.csv("../Processed_data/FP_CmaxDepth.csv")
-Cmax <- tibble(Cmax) %>%
-  mutate(Date = date(Date))
-
+#Cmax relative to pz depth
 cmpz <- left_join(Cmax, pz, by = "Date") %>%
   mutate(green_rel_pz = (Zeu-CmaxDepth_GreenAlgae_ugL)/Zeu,
          cyano_rel_pz = (Zeu-CmaxDepth_Bluegreens_ugL)/Zeu,
@@ -90,7 +85,6 @@ Step 3: Calculate statistics for manuscript
 # dominance of cyanobacteria during study period
 dom <- flo_metrics %>%
   select(-Reservoir, -Site) %>%
-  mutate(Date = date(DateTime)) %>%
   filter((Date >= "2021-05-01" & Date <= "2021-09-01") | (Date >= "2022-05-01" & Date <= "2022-09-01")) %>%
   group_by(Date) %>%
   summarize(GreenAlgae_ugL = mean(GreenAlgae_ugL, na.rm = TRUE),
@@ -114,4 +108,12 @@ dom %>%
   count(dom_group) %>% 
   ungroup() %>% 
   mutate(perc = 100*(n/sum(n)))
+
+pw2%>%
+  filter((Date >= "2021-05-19 00:00:00" & Date <= "2021-06-28 00:00:00") |
+           (Date >= "2022-05-19 00:00:00" & Date <= "2022-06-28 00:00:00"))%>%
+  mutate(Year = year(Date))%>%
+  group_by(Year)%>%
+  dplyr::summarise(pw_tot = mean(PeakWidth_TotalConc_m, na.rm = T),
+                   pw_cyano = mean(PeakWidth_Bluegreens_m, na.rm = T))
 ```
