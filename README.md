@@ -31,7 +31,7 @@ Carbon dioxide, drawdown, dissolved oxygen, high-frequency sensors, nitrogen, ph
 
 Scripts to load data from EDI and calculate relevant summary metrics (e.g., Schmidt stability). Each code file corresponds to one data package on EDI. These code files do not produce any statistics or figures for the main manuscript, rather they output compiled data products, which are stored in [Processed_data](Processed_data). [R/install.R](R/install.R) can be used to download all necessary packages.
 
-* [Metals.Rmd](01_Load_and_process_data/Metals.Rmd):
+* [Metals.Rmd](01_Load_and_process_data/Metals.Rmd)
    * Load and format metals data from EDI
 * [Chem.Rmd](01_Load_and_process_data/Chem.Rmd)
    * Load and format chemistry (N, P, DOC) data from EDI
