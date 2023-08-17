@@ -67,7 +67,14 @@ cat_long <- bvr_pre_05APR21%>%
          year(DateTime)%in% c(2021,2022))%>%
   select(-Offset_before_05APR21, -Offset_after_05APR21)%>%
   mutate(Reservoir_depth=Depth_m_13+0.5)%>%
-  select(Reservoir, Site,DateTime, Reading, Sensor_depth, Rounded_depth_hundreth, Depth_m_13, Reservoir_depth, Distance_above_sediments)
+  select(Reservoir, 
+         Site,DateTime, 
+         Reading, 
+         Sensor_depth, 
+         Rounded_depth_hundreth, 
+         Depth_m_13, 
+         Reservoir_depth, 
+         Distance_above_sediments)
 
 write.csv(cat_long,"../Processed_data/BVR_longoutput.csv", row.names = F)
 
@@ -79,7 +86,7 @@ catwalk_format <- cat_long%>%
   group_by(Date)%>%
   mutate(Reservoir_depth = mean(Reservoir_depth))%>%
   group_by(Date, Sensor_depth)%>%
-  dplyr::summarize(Reading=mean(Reading,na.rm = T),
+  dplyr::summarize(Reading = mean(Reading, na.rm = T),
                    Reservoir_depth = unique(Reservoir_depth),
                    Distance_above_sediments = unique(Distance_above_sediments))
 ```
@@ -127,7 +134,8 @@ for(i in 1:length(dates)) {
                                   sal = rep(0,length(temps$Reading))
                                   )
 }
-schmidt_df = data.frame(Date = unique(catwalk_format$Date), Schmidt = schmidts)%>%
+schmidt_df = data.frame(Date = unique(catwalk_format$Date), 
+                        Schmidt = schmidts)%>%
   mutate(Year = year(Date),
          DOY = yday(Date))
 
@@ -145,7 +153,9 @@ buoyancy_raw <- catwalk_format%>%
             Depth_m = mean(Sensor_depth))%>%
   arrange(Date,Depth_m)%>%
   group_by(Date)%>%
-  filter((Depth_m-lag(Depth_m)>.4)|(Depth_m-lag(Depth_m)<0)|is.na(lag(Depth_m)))%>%
+  filter((Depth_m-lag(Depth_m) > .4) | 
+           (Depth_m-lag(Depth_m) < 0) | 
+           is.na(lag(Depth_m)))%>%
   dplyr::summarize(buoy_freq = buoyancy.freq(Temp_C, Depth_m),
                    Depth_m = attr(buoyancy.freq(Temp_C, Depth_m), 'depths'))
 
@@ -188,7 +198,8 @@ for(date in unique(catwalk_format_with_zero$Date)){
                                  bthD = baths$Depth_m))
 }
 
-vw_temp_df <- data.frame(Date = unique(catwalk_format$Date), vw_temp = vw_temp)%>%
+vw_temp_df <- data.frame(Date = unique(catwalk_format$Date), 
+                         vw_temp = vw_temp)%>%
   mutate(Year = year(Date),
          DOY = yday(Date))
 
@@ -226,16 +237,16 @@ meta_ratio <- flexible_bathy%>%
   filter(!is.na(thermo),thermo>0)%>%
   group_by(Date)%>%
   rename(Volume_L = Volume_layer_L)%>%
-  dplyr::summarize(depth_above_thermo = max(Depth_m[Depth_m<(thermo)]),
-            thermo_and_just_below = sum(Volume_L[Depth_m<=depth_above_thermo]), #1m layers
-            correction_thermo = unique(1-(thermo-depth_above_thermo))*Volume_L[Depth_m==depth_above_thermo],
-            depth_above_water = unique(Depth_m[Depth_m<0]),
-            correction_surf = abs(unique(depth_above_water))*Volume_L[Depth_m==depth_above_water],
-            epi_volume = unique(thermo_and_just_below-correction_thermo-correction_surf),
-            hypo_and_above = sum(Volume_L[Depth_m>=depth_above_thermo]),
-            correction_hypo = unique(thermo-depth_above_thermo)*Volume_L[Depth_m==depth_above_thermo],
-            hypo_volume = unique(hypo_and_above-correction_hypo),
-            epi_hypo_ratio = unique(epi_volume/hypo_volume)
+  dplyr::summarize(depth_above_thermo = max(Depth_m[Depth_m < (thermo)]),
+            thermo_and_just_below = sum(Volume_L[Depth_m <= depth_above_thermo]), #1m layers
+            correction_thermo = unique(1-(thermo-depth_above_thermo)) * Volume_L[Depth_m == depth_above_thermo],
+            depth_above_water = unique(Depth_m[Depth_m < 0]),
+            correction_surf = abs(unique(depth_above_water)) * Volume_L[Depth_m == depth_above_water],
+            epi_volume = unique(thermo_and_just_below - correction_thermo - correction_surf),
+            hypo_and_above = sum(Volume_L[Depth_m >= depth_above_thermo]),
+            correction_hypo = unique(thermo-depth_above_thermo) * Volume_L[Depth_m == depth_above_thermo],
+            hypo_volume = unique(hypo_and_above - correction_hypo),
+            epi_hypo_ratio = unique(epi_volume / hypo_volume)
   )%>%
   mutate(DOY = yday(Date))
 

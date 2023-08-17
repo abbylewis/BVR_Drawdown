@@ -85,9 +85,15 @@ for (i in 1:length(datez)){
 
 # Format data for export
 Cmax_final <- Cmax
-colnames(Cmax_final) <- c("Date","CmaxDepth_GreenAlgae_ugL","CmaxDepth_Bluegreens_ugL","CmaxDepth_BrownAlgae_ugL","CmaxDepth_MixedAlgae_ugL","CmaxDepth_TotalConc_ugL")
+colnames(Cmax_final) <- c("Date","CmaxDepth_GreenAlgae_ugL",
+                          "CmaxDepth_Bluegreens_ugL",
+                          "CmaxDepth_BrownAlgae_ugL",
+                          "CmaxDepth_MixedAlgae_ugL",
+                          "CmaxDepth_TotalConc_ugL")
 # Export data
-write.csv(Cmax_final, file = "../Processed_data/FP_CmaxDepth.csv", row.names = FALSE)
+write.csv(Cmax_final, 
+          file = "../Processed_data/FP_CmaxDepth.csv", 
+          row.names = FALSE)
 ```
 
 
@@ -152,8 +158,16 @@ for (i in 1:length(profiles)){
     plot_filename = paste0("../Figs/peak_width_plots/",profile$key[1],".jpeg")
     # create plot
                   pp0 = ggplot() +
-                      geom_line(data = profile, aes(x = depth, y = chl), size = 0.75, color = "springgreen3")+
-                      geom_segment(data = plot.df, aes(x = peak.top, y = conc_med, xend = peak.bottom, yend = conc_med, colour = "red"))+
+                      geom_line(data = profile, 
+                                aes(x = depth, y = chl), 
+                                size = 0.75, 
+                                color = "springgreen3")+
+                      geom_segment(data = plot.df, 
+                                   aes(x = peak.top, 
+                                       y = conc_med, 
+                                       xend = peak.bottom, 
+                                       yend = conc_med, 
+                                       colour = "red"))+
                       scale_y_continuous()+
                       scale_x_reverse()+
                       ggtitle(profile$key[1])+
@@ -164,7 +178,10 @@ for (i in 1:length(profiles)){
                   
                   # write plot to file
                       ppi = 300
-                      png(file = plot_filename, width = 3*ppi, height = 3*ppi, res = ppi)
+                      png(file = plot_filename, 
+                          width = 3*ppi, 
+                          height = 3*ppi, 
+                          res = ppi)
                       print(pp0)
                       dev.off()
   

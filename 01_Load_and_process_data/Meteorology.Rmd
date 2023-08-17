@@ -35,7 +35,8 @@ weather_sum = met%>%
 
 write.csv(weather_sum, "../Processed_data/Weather_sum.csv", row.names = F)
 
-# create dataset of observations from May 19th - July 1st for 2021 and 2022 for met statisitics
+# create dataset of observations from May 19th - July 1st 
+#for 2021 and 2022 for met statisitics
 met_drawdown <- met %>%
   select(DateTime, Rain_Total_mm, WindSpeed_Average_m_s, AirTemp_C_Average) %>%
   mutate(DateTime=ymd_hms(DateTime))%>%

@@ -28,12 +28,24 @@ metals_surf = metals%>%
   
 #Additional QAQC needed (Days where soluble>total)
 metals_final = metals_surf%>%
-  mutate(TFe_mgL = ifelse(Date=="2022-05-09",metals_surf$SFe_mgL[metals_surf$Date=="2022-05-09"],TFe_mgL),
-         TMn_mgL = ifelse(Date=="2022-05-09",metals_surf$SMn_mgL[metals_surf$Date=="2022-05-09"],TMn_mgL),
-         SFe_mgL = ifelse(Date=="2022-05-09",metals_surf$TFe_mgL[metals_surf$Date=="2022-05-09"],SFe_mgL),
-         SMn_mgL = ifelse(Date=="2022-05-09",metals_surf$TMn_mgL[metals_surf$Date=="2022-05-09"],SMn_mgL),
-         TFe_mgL = ifelse(Date=="2022-06-07",NA,TFe_mgL),
-         TMn_mgL = ifelse(Date=="2022-06-07",NA,TMn_mgL))
+  mutate(TFe_mgL = ifelse(Date=="2022-05-09",
+                          metals_surf$SFe_mgL[metals_surf$Date=="2022-05-09"],
+                          TFe_mgL),
+         TMn_mgL = ifelse(Date=="2022-05-09",
+                          metals_surf$SMn_mgL[metals_surf$Date=="2022-05-09"],
+                          TMn_mgL),
+         SFe_mgL = ifelse(Date=="2022-05-09",
+                          metals_surf$TFe_mgL[metals_surf$Date=="2022-05-09"],
+                          SFe_mgL),
+         SMn_mgL = ifelse(Date=="2022-05-09",
+                          metals_surf$TMn_mgL[metals_surf$Date=="2022-05-09"],
+                          SMn_mgL),
+         TFe_mgL = ifelse(Date=="2022-06-07",
+                          NA,
+                          TFe_mgL),
+         TMn_mgL = ifelse(Date=="2022-06-07",
+                          NA,
+                          TMn_mgL))
 
 write.csv(metals_final,"../Processed_data/Metals at 0.1m.csv",row.names=F)
 ```

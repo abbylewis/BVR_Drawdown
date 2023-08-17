@@ -31,7 +31,9 @@ library(patchwork)
 source("../R/plot_facet.R")
 
 #Define drawdown dates
-lines_rect = data.frame(closed = as.Date("2022-06-28"), opened = as.Date("2022-05-19"), Year = 2022, year_class = "2022")
+lines_rect = data.frame(closed = as.Date("2022-06-28"), 
+                        opened = as.Date("2022-05-19"), 
+                        Year = 2022)
 
 #Set theme for plots
 theme_set(
@@ -107,15 +109,25 @@ figure_5_data <- chem_full%>%
          month(Date)<9)%>%
   mutate(Year = year(Date),
          color = name,
-         name = ifelse(name%in%c("TotalConc_ugL","Bluegreens_ugL"),"Phyto",name), 
-         name = ifelse(name%in%c("TP_ugL","PO4_ugL"),"Phosphorus",name), 
-         name = ifelse(name%in%c("TN_ugL","NO3NO2_ugL","NH4_ugL"),"Nitrogen",name))%>%
-  mutate(name = factor(name, levels=c("Phosphorus","Nitrogen","Phyto","DOC_mgL","CO2_umolL")),
+         name = ifelse(name%in%c("TotalConc_ugL", "Bluegreens_ugL"),
+                       "Phyto",
+                       name), 
+         name = ifelse(name%in%c("TP_ugL", "PO4_ugL"),
+                       "Phosphorus",
+                       name), 
+         name = ifelse(name%in%c("TN_ugL",  "NO3NO2_ugL", "NH4_ugL"),
+                       "Nitrogen",
+                       name))%>%
+  mutate(name = factor(name, 
+                       levels=c("Phosphorus", "Nitrogen", "Phyto",
+                                "DOC_mgL", "CO2_umolL")),
          color = factor(color, 
-                        levels=c("TP_ugL","PO4_ugL","TN_ugL","NH4_ugL",
-                                 "TotalConc_ugL","Bluegreens_ugL","DOC_mgL","CO2_umolL"),
-                        labels=c("Total P","Phosphate","Total N","Ammonium",
-                                 "Total phytoplankton", "Cyanobacteria", "DOC", "CO2")))
+                        levels=c("TP_ugL", "PO4_ugL", "TN_ugL", "NH4_ugL",
+                                 "TotalConc_ugL", "Bluegreens_ugL",
+                                 "DOC_mgL", "CO2_umolL"),
+                        labels=c("Total P", "Phosphate", "Total N", "Ammonium",
+                                 "Total phytoplankton", "Cyanobacteria", 
+                                 "DOC", "CO2")))
 
 #Calculate maxes
 maxes <- figure_5_data%>%
@@ -154,8 +166,9 @@ p <- plot_facet(data = figure_5_data,
                 xint_1 = maxes$max_date[maxes$color=="Total P"],
                 xint_2 = maxes$max_date[maxes$color=="Phosphate"],
                 color = c("black","black"),
-                ylab = expression(atop(NA, atop(textstyle("Phosphorus"), 
-                                                textstyle(paste("(",mu, "g/L)"))))),
+                ylab = expression(atop(NA, 
+                                       atop(textstyle("Phosphorus"), 
+                                            textstyle(paste("(",mu, "g/L)"))))),
                 legend = T,
                 legend.position = c(0.12,0.38),
                 strip.placement = "outside", 
@@ -168,8 +181,9 @@ n <- plot_facet(data = figure_5_data,
                 xint_1 = maxes$max_date[maxes$color=="Total N"],
                 xint_2 = maxes$max_date[maxes$color=="Ammonium"],
                 color = c("magenta4", "magenta4"),
-                ylab = expression(atop(NA, atop(textstyle("Nitrogen"), 
-                                                textstyle(paste("(",mu, "g/L)"))))),
+                ylab = expression(atop(NA, 
+                                       atop(textstyle("Nitrogen"), 
+                                            textstyle(paste("(",mu, "g/L)"))))),
                 legend = T,
                 legend.position = c(0.12, 0.38),
                 legend.justification = c(0, 0))
@@ -180,8 +194,9 @@ phyto <-plot_facet(data = figure_5_data,
                    xint_1 = maxes$max_date[maxes$color=="Total phytoplankton"],
                    xint_2 = maxes$max_date[maxes$color=="Cyanobacteria"],
                    color = c("darkgreen", "darkgreen"),
-                   ylab = expression(atop(NA, atop(textstyle("Phytoplankton"), 
-                                                   textstyle(paste("(",mu, "g/L)"))))),
+                   ylab = expression(atop(NA, 
+                                          atop(textstyle("Phytoplankton"), 
+                                               textstyle(paste("(",mu, "g/L)"))))),
                    legend = T,
                    legend.position = c(0.12, 0.38),
                    legend.justification = c(0, 0))
@@ -191,8 +206,9 @@ doc <- plot_facet(data = figure_5_data,
                   var_name = "DOC_mgL", 
                   xint_1 = maxes$max_date[maxes$color=="DOC"],
                   color = "#8E4412",
-                  ylab = expression(atop(NA, atop(textstyle("DOC"), 
-                                                  textstyle(paste("(mg/L)")))))
+                  ylab = expression(atop(NA, 
+                                         atop(textstyle("DOC"), 
+                                              textstyle(paste("(mg/L)")))))
                   )
 
 # CO2
@@ -200,15 +216,21 @@ co2 <- plot_facet(data = figure_5_data,
                 var_name = "CO2_umolL", 
                 xint_1 = maxes$max_date[maxes$color=="CO2"],
                 color = "blue",
-                ylab = expression(atop(NA, atop(textstyle("CO"[2]), 
-                                                textstyle(paste("(", mu, "mol/L)"))))),
+                ylab = expression(atop(NA, 
+                                       atop(textstyle("CO"[2]), 
+                                            textstyle(paste("(", mu, "mol/L)"))))),
                 axis.text.x = element_text(vjust = -1), 
                 axis.ticks = element_line(colour = "black"),
                )
 
 figure_5 <- wrap_plots(p, n, phyto, doc, co2, nrow=5)
 
-ggsave("../Figs/Figure_5.jpeg", figure_5, dpi = 300, width = 6, height = 5, bg = "white")
+ggsave("../Figs/Figure_5.jpeg", 
+       figure_5, 
+       dpi = 300, 
+       width = 6, 
+       height = 5, 
+       bg = "white")
 ```
 
 
@@ -220,21 +242,27 @@ figure_6_data <- fluora_surface%>%
   full_join(cmax_depth)%>%
   full_join(peak_width)%>%
   select(Date, Turbidity_NTU, Zeu, CmaxDepth_TotalConc_ugL, 
-         CmaxDepth_Bluegreens_ugL, PeakWidth_TotalConc_m, PeakWidth_Bluegreens_m)%>%
+         CmaxDepth_Bluegreens_ugL, PeakWidth_TotalConc_m, 
+         PeakWidth_Bluegreens_m)%>%
   pivot_longer(cols = c(Turbidity_NTU, Zeu, CmaxDepth_TotalConc_ugL, 
-                        CmaxDepth_Bluegreens_ugL, PeakWidth_TotalConc_m, PeakWidth_Bluegreens_m))%>%
+                        CmaxDepth_Bluegreens_ugL, PeakWidth_TotalConc_m, 
+                        PeakWidth_Bluegreens_m))%>%
   filter(!is.na(value),
          month(Date)>4,
          month(Date)<9)%>%
   mutate(Year = year(Date),
          color = ifelse(name%in%c("CmaxDepth_TotalConc_ugL", "PeakWidth_TotalConc_m"),
                         "TotalConc_ugL",
-                        ifelse(name%in%c("PeakWidth_Bluegreens_m", "CmaxDepth_Bluegreens_ugL"),
-                               "Bluegreens_ugL",name)),
+                        name),
+         color = ifelse(name%in%c("PeakWidth_Bluegreens_m", "CmaxDepth_Bluegreens_ugL"),
+                        "Bluegreens_ugL",
+                        name),
          name = ifelse(name%in%c("CmaxDepth_TotalConc_ugL", "CmaxDepth_Bluegreens_ugL"),
-                       "Cmax_depth", name),
+                       "Cmax_depth", 
+                       name),
          name = ifelse(name%in%c("PeakWidth_TotalConc_m", "PeakWidth_Bluegreens_m"),
-                       "PeakWidth",name),
+                       "PeakWidth",
+                       name),
          color = factor(color, 
                         levels = c("Zeu", "TotalConc_ugL", "Bluegreens_ugL", "Turbidity_NTU"),
                         labels = c("Zeu", "Total phytoplankton", "Cyanobacteria", "Turbidity_NTU"))
@@ -246,7 +274,9 @@ maxes <- figure_6_data%>%
   summarize(max_date = Date[which.max(value)],
             min_date = Date[which.min(value)])%>%
   filter(Year=="2022")%>%
-  mutate(max_date = ifelse(name %in% c("Zeu", "Cmax_depth", "PeakWidth"),min_date,max_date))
+  mutate(max_date = ifelse(name %in% c("Zeu", "Cmax_depth", "PeakWidth"),
+                           min_date,
+                           max_date))
 
 #Stats
 figure_6_data%>%
@@ -255,8 +285,12 @@ figure_6_data%>%
             max = max(value),
             min_date = Date[which.min(value)],
             min = min(value))%>%
-  mutate(max_date = ifelse(name %in% c("Zeu", "Cmax_depth", "PeakWidth"),min_date,max_date),
-         max = ifelse(name %in% c("Zeu", "Cmax_depth", "PeakWidth"),min,max))%>%
+  mutate(max_date = ifelse(name %in% c("Zeu", "Cmax_depth", "PeakWidth"),
+                           min_date,
+                           max_date),
+         max = ifelse(name %in% c("Zeu", "Cmax_depth", "PeakWidth"),
+                      min,
+                      max))%>%
   group_by(name,color)%>%
   mutate(pct = (max[Year==2022]-max[Year==2021])/max[Year==2021]*100)
 ```
@@ -272,7 +306,9 @@ turb <- plot_facet(data = figure_6_data,
                    ylab = expression(atop(NA, atop(textstyle("Turbidity"), 
                                                    textstyle("(NTU)")))),
                    strip.placement = "outside", 
-                   strip.text.x = element_text(size = 12, face = "bold", vjust = 2))
+                   strip.text.x = element_text(size = 12, 
+                                               face = "bold", 
+                                               vjust = 2))
 
 # Plots Euphotic Zone
 zeu <- plot_facet(data = figure_6_data, 
@@ -314,7 +350,12 @@ width <- plot_facet(data = figure_6_data,
 
 figure_6 <- wrap_plots(turb, zeu, cmax, width, nrow=4)
 
-ggsave("../Figs/Figure_6.jpeg", figure_6, dpi = 300, width = 6, height = 4, bg = "white")
+ggsave("../Figs/Figure_6.jpeg", 
+       figure_6, 
+       dpi = 300, 
+       width = 6, 
+       height = 4, 
+       bg = "white")
 ```
 
 
@@ -325,7 +366,8 @@ figure_7_data <- thermo_depth%>%
   full_join(ctd %>% select(-Year,-Depth_m))%>%
   full_join(metals)%>%
   select(Date, TFe_mgL, TMn_mgL, SFe_mgL, SMn_mgL, DOsat_percent,thermo)%>%
-  pivot_longer(cols = c(TFe_mgL, TMn_mgL, SFe_mgL, SMn_mgL, DOsat_percent, thermo))%>% #Pivot for facet wrap
+  #Pivot for facet wrap
+  pivot_longer(cols = c(TFe_mgL, TMn_mgL, SFe_mgL, SMn_mgL, DOsat_percent, thermo))%>% 
   filter(!is.na(value),
          month(Date) > 4,
          month(Date) < 9)%>%
@@ -334,8 +376,10 @@ figure_7_data <- thermo_depth%>%
          name = ifelse(name %in% c("SFe_mgL", "TFe_mgL"), "Fe_mgL", name),
          name = ifelse(name %in% c("SMn_mgL", "TMn_mgL"), "Mn_mgL", name),
          color = factor(color, 
-                        levels = c("thermo", "DOsat_percent", "TFe_mgL", "TMn_mgL", "SFe_mgL", "SMn_mgL"),
-                        labels = c("thermo", "DOsat_percent", "Total Fe", "Total Mn", "Soluble Fe", "Soluble Mn")))
+                        levels = c("thermo", "DOsat_percent", "TFe_mgL", 
+                                   "TMn_mgL", "SFe_mgL", "SMn_mgL"),
+                        labels = c("thermo", "DOsat_percent", "Total Fe", 
+                                   "Total Mn", "Soluble Fe", "Soluble Mn")))
 
 #Calculate maximum values
 maxes <- figure_7_data%>%
@@ -389,7 +433,9 @@ thermo <- plot_facet(data = figure_7_data,
                      ylab = "Thermocline \ndepth (m)",
                      reverse = T,
                      strip.placement = "outside", 
-                     strip.text.x = element_text(size = 12, face = "bold", vjust = 2))
+                     strip.text.x = element_text(size = 12, 
+                                                 face = "bold", 
+                                                 vjust = 2))
 
 do_sat <- plot_facet(data = figure_7_data, 
                      var_name = "DOsat_percent", 
@@ -421,6 +467,11 @@ mn <- plot_facet(data = figure_7_data,
 
 figure_7 <- wrap_plots(thermo, do_sat, fe, mn, nrow=4)
 
-ggsave(file="../Figs/Figure_7.jpeg",figure_7, dpi = 300, width = 6, height = 4, bg = "white")
+ggsave(file="../Figs/Figure_7.jpeg",
+       figure_7, 
+       dpi = 300, 
+       width = 6, 
+       height = 4, 
+       bg = "white")
  
 ```

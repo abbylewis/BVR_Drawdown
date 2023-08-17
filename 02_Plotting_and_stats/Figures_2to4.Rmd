@@ -65,8 +65,10 @@ schmidt_fig <- schmidt_df%>%
   mutate(Year = as.factor(Year),
          Date_22 = DOY + as.Date("2021-12-31"))%>%
   ggplot()+
-  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
-  geom_point(aes(x = Date_22,y = Schmidt, fill = Year, color = Year), shape = 21, stroke = .5, size = 1.5)+
+  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),
+            fill = "grey40", data = lines_rect, alpha = 0.2)+
+  geom_point(aes(x = Date_22,y = Schmidt, fill = Year, color = Year), 
+             shape = 21, stroke = .5, size = 1.5)+
   scale_fill_manual(values = c("black","#00F7FF"))+
   scale_color_manual(values = c("black","#0800FA"))+
   geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
@@ -82,8 +84,10 @@ buoy_fig <- buoy_max%>%
          Date_22 = DOY + as.Date("2021-12-31"))%>%
   filter(Year %in% c(2021,2022))%>%
   ggplot()+
-  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
-  geom_point(aes(x = Date_22, y= max, color = Year, fill = Year),shape = 21, stroke = .5, size = 1.5)+
+  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),
+            fill = "grey40", data = lines_rect, alpha = 0.2)+
+  geom_point(aes(x = Date_22, y= max, color = Year, fill = Year),
+             shape = 21, stroke = .5, size = 1.5)+
   scale_fill_manual(values = c("black","#00F7FF"))+
   scale_color_manual(values = c("black","#0800FA"))+
   geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
@@ -101,8 +105,10 @@ water <- vw_temp_df%>%
          Year = as.factor(Year),
          Date_22 = DOY + as.Date("2021-12-31"))%>%
   ggplot()+
-  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
-  geom_point(aes(x = Date_22, y = vw_temp, fill = Year, color = Year),shape = 21, stroke = .5, size = 1.5)+
+  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),
+            fill = "grey40", data = lines_rect, alpha = 0.2)+
+  geom_point(aes(x = Date_22, y = vw_temp, fill = Year, color = Year),
+             shape = 21, stroke = .5, size = 1.5)+
   scale_fill_manual(values = c("black","#00F7FF"))+
   scale_color_manual(values = c("black","#0800FA"))+
   geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
@@ -122,14 +128,17 @@ surf <- cat_long%>%
             Sensor_depth = mean(Reservoir_depth))%>%
   mutate(Year = year(Date),
          DOY = yday(Date),
-         Date_22 = DOY + as.Date("2021-12-31"))%>% #Making a date column where year is the same to standardize x-axes
+         #Making a date column where year is the same to standardize x-axes
+         Date_22 = DOY + as.Date("2021-12-31"))%>% 
   filter(Year %in% c(2021,2022))
 
 surf_plot_save <- surf%>%
   mutate(Year = as.factor(Year))%>%
   ggplot()+
-  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
-  geom_point(aes(x = Date_22, y = Reading, fill = Year, color = Year), shape = 21, stroke = .5, size = 1.5)+
+  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),
+            fill = "grey40", data = lines_rect, alpha = 0.2)+
+  geom_point(aes(x = Date_22, y = Reading, fill = Year, color = Year), 
+             shape = 21, stroke = .5, size = 1.5)+
   scale_fill_manual(values = c("black","#00F7FF"))+
   scale_color_manual(values = c("black","#0800FA"))+
   geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
@@ -148,8 +157,10 @@ temp <- weather_sum%>%
   mutate(Year = as.factor(Year),
          Date_22 = DOY + as.Date("2021-12-31"))%>%
   ggplot()+
-  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "grey40", data = lines_rect, alpha = 0.2)+
-  geom_point(aes(x = Date_22, y = AirTemp_C_Average, fill = Year, color = Year), shape = 21, stroke = .5, size = 1.5)+
+  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),
+            fill = "grey40", data = lines_rect, alpha = 0.2)+
+  geom_point(aes(x = Date_22, y = AirTemp_C_Average, fill = Year, color = Year), 
+             shape = 21, stroke = .5, size = 1.5)+
   scale_fill_manual(values = c("black","#00F7FF"))+
   scale_color_manual(values = c("black","#0800FA"))+
   geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
@@ -162,7 +173,8 @@ air_temp_plot <- weather_sum%>%
   mutate(Year = year(Date),
          Air_Temp = AirTemp_C_Average,
          DOY = yday(Date),
-         Date_22 = DOY + as.Date("2021-12-31"))%>% #Making a date column where year is the same to standardize x-axes
+         #Making a date column where year is the same to standardize x-axes
+         Date_22 = DOY + as.Date("2021-12-31"))%>% 
   filter(Year %in% c(2021,2022),
          !is.na(AirTemp_C_Average))%>%
   mutate(Year = as.factor(Year))%>%
@@ -178,7 +190,15 @@ air_temp_plot%>%
 
 legend <- get_legend(temp)
 jpeg("../Figs/Figure_4.jpg",res = 300, units = "in",width = 8, height = 6)
-plot_grid(temp+theme(legend.position = "none"),surf_plot_save,water,buoy_fig,schmidt_fig,legend, align = "hv",labels = list("a","b","c","d","e",""),nrow=2,ncol=3,axis = "rltb")
+plot_grid(temp+theme(legend.position = "none"),
+          surf_plot_save,
+          water,
+          buoy_fig,
+          schmidt_fig,
+          legend, 
+          align = "hv",
+          labels = list("a","b","c","d","e",""),
+          nrow=2,ncol=3,axis = "rltb")
 dev.off()
 ```
 

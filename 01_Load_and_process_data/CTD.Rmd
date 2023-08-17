@@ -48,12 +48,15 @@ df.final.raw<- ctd %>%
   group_by(Date, Reservoir, Site) %>%
   slice(which.min(abs(as.numeric(Depth_m) - depths[1]))) #Create a new dataframe
 df.final.raw$Depth_m <- newDepths[1]
-for (i in 2:length(depths)){ #loop through all depths and add the closest values to the final dataframe
+
+#loop through all depths and add the closest values to the final dataframe
+for (i in 2:length(depths)){ 
   ctd_atThisDepth <- ctd %>% 
     group_by(Date, Reservoir, Site) %>% 
     slice(which.min(abs(as.numeric(Depth_m) - depths[i])))
   ctd_atThisDepth <- ctd_atThisDepth %>%
-    filter(abs(Depth_m-newDepths[i])<0.1) #only include if the measured depth is within 0.1 of the depth we are labeling it
+    #only include if the measured depth is within 0.1 of the depth label
+    filter(abs(Depth_m-newDepths[i])<0.1) 
   ctd_atThisDepth$Depth_m <- newDepths[i]
   df.final.raw <- rbind(df.final.raw,ctd_atThisDepth)
 }
@@ -63,11 +66,21 @@ for (i in 2:length(depths)){ #loop through all depths and add the closest values
 ysi_formatted <- ysi%>%
   mutate(Date = as.Date(DateTime))%>%
   select("Reservoir", "Site", "Date", "Depth_m", "DO_mgL", "DOSat","Temp_C")%>%
-  #We are only using YSI to fill in gaps in CTD data (July 1 to December 1 2021). Select data for those gaps here
+  #We are only using YSI to fill in gaps in CTD data (July 1 to December 1 2021)
+  #Select data for those gaps here:
   filter(year(Date)==2021)%>%
-  mutate(DO_mgL = ifelse(Date<=as.Date("2021-07-01")|Date>=as.Date("2021-12-01"),NA,DO_mgL),
-         DOSat = ifelse(Date<=as.Date("2021-07-01")|Date>=as.Date("2021-12-01"),NA,DOSat),
-         Temp_C = ifelse(Date<=as.Date("2021-07-01")|Date>=as.Date("2021-12-01"),NA,Temp_C))%>%
+  mutate(DO_mgL = ifelse(Date <= as.Date("2021-07-01") | 
+                           Date >= as.Date("2021-12-01"),
+                         NA,
+                         DO_mgL),
+         DOSat = ifelse(Date <= as.Date("2021-07-01") |
+                          Date >= as.Date("2021-12-01"),
+                        NA,
+                        DOSat),
+         Temp_C = ifelse(Date <= as.Date("2021-07-01") |
+                           Date >= as.Date("2021-12-01"),
+                         NA,
+                         Temp_C))%>%
   mutate(method = "ysi")%>%
   filter(Date!="2021-05-31"|Depth_m<=10)
 
@@ -76,10 +89,14 @@ ysi_formatted <- ysi%>%
 df.final_export <- df.final.raw%>%
   mutate(Date = as.Date(Date),
          Year = year(Date),
-         DO_mgL = ifelse(Date>as.Date("2021-07-01")&Date<as.Date("2021-12-01"),
-                         NA,DO_mgL),
-         DOsat_percent = ifelse(Date>as.Date("2021-07-01")&Date<as.Date("2021-12-01"),
-                                NA,DOsat_percent))%>%
+         DO_mgL = ifelse(Date > as.Date("2021-07-01") & 
+                           Date < as.Date("2021-12-01"),
+                         NA,
+                         DO_mgL),
+         DOsat_percent = ifelse(Date > as.Date("2021-07-01") & 
+                                  Date < as.Date("2021-12-01"),
+                                NA,
+                                DOsat_percent))%>%
   full_join(ysi_formatted%>%dplyr::rename(DO_mgL_ysi = DO_mgL,
                                           DOsat_percent_ysi = DOSat,
                                           Temp_C_ysi = Temp_C))%>%
@@ -87,7 +104,9 @@ df.final_export <- df.final.raw%>%
   mutate(max = max(Depth_m),
          Temp_C = ifelse(is.na(Temp_C),Temp_C_ysi, Temp_C),
          DO_mgL=ifelse(is.na(DO_mgL),DO_mgL_ysi,DO_mgL),
-         DOsat_percent=ifelse(is.na(DOsat_percent),DOsat_percent_ysi,DOsat_percent),
+         DOsat_percent=ifelse(is.na(DOsat_percent),
+                              DOsat_percent_ysi,
+                              DOsat_percent),
          Depth_m_sed = max-Depth_m,
          Year = year(Date))
 
@@ -132,7 +151,7 @@ atten_k = ctd_bvr%>%
          !I0==0)%>%
   summarize(I0 = unique(I0),
             k = coef(lm(I(log(PAR_umolm2s)-log(I0))~ 0 + Depth_m)),
-            r2 = summary(lm(I(log(PAR_umolm2s)-log(I0))~ 0 + Depth_m))$r.squared,
+            r2 = summary(lm(I(log(PAR_umolm2s)-log(I0)) ~ 0 + Depth_m))$r.squared,
             Zeu = min(Depth_m[PAR_umolm2s<I0/100]),
             Zeu_0.1 = min(Depth_m[PAR_umolm2s<I0/1000]))%>%
   filter(r2>0.9)
