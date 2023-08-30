@@ -327,7 +327,7 @@ water_temp <- interp%>%
   geom_line(data = thermo_raw%>%
               mutate(Year=year(Date))%>%
               filter(Year%in%c(2021,2022)), aes(x = Date, y = Reservoir_depth-thermo, lty = "Thermocline"), lwd = .2)+
-  geom_hline(aes(yintercept = 6.6, lty = "Out-take pipe"), alpha = 0.3)+
+  geom_hline(aes(yintercept = 6.6, lty = "Outtake pipe"), alpha = 0.3)+
   labs(y = "Height above sediments (m)")+
   scale_x_date(expand = c(0,0))+
   scale_y_continuous(expand = c(0,0))+
@@ -340,7 +340,7 @@ water_temp <- interp%>%
   labs(color = "")+
   geom_point(data = sensor_depth_plot, aes(x = Date, y = Sensor_depth), shape = 23, fill = "black", color = "white", size  =2.5)+
   geom_vline(data=lines,aes(xintercept = Dates), show.legend = F)+
-  scale_linetype_manual(values = c("solid","84"),limits = c("Thermocline","Out-take pipe"),  name= NULL)+
+  scale_linetype_manual(values = c("solid","84"),limits = c("Thermocline","Outtake pipe"),  name= NULL)+
   scale_fill_gradientn(name = "Water temperature\n(°C)",
                        limits = c(-1, 30),
                        colours = custom_heatmap_palette)
@@ -446,7 +446,7 @@ for(i in 1:length(vars)){
     geom_point(data = bvr, aes(x = Date, y = max), shape = 25, fill = "black", color = "white", size  =2)+
     geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "black", data = lines_rect, alpha = 0.15)+
     geom_vline(data=lines,aes(xintercept = Dates), show.legend = F)+
-    geom_hline(aes(yintercept = 6.6, lty = "Out-take pipe"), alpha = 0.3, lty = "84")+
+    geom_hline(aes(yintercept = 6.6, lty = "Outtake pipe"), alpha = 0.3, lty = "84")+
     scale_x_date(expand = c(0,0))+
     theme(panel.border = element_rect(fill = NA),
           panel.background = element_rect(fill = "white"),

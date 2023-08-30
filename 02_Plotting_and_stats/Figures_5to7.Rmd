@@ -125,7 +125,7 @@ figure_5_data <- chem_full%>%
                         levels=c("TP_ugL", "PO4_ugL", "TN_ugL", "NH4_ugL",
                                  "TotalConc_ugL", "Bluegreens_ugL",
                                  "DOC_mgL", "CO2_umolL"),
-                        labels=c("Total P", "Phosphate", "Total N", "Ammonium",
+                        labels=c("Total phosphorus", "Phosphate", "Total nitrogen", "Ammonium",
                                  "Total phytoplankton", "Cyanobacteria", 
                                  "DOC", "CO2")))
 
@@ -163,7 +163,7 @@ Code chunk 4: Make line plot of nutrients, phytos, DOC, and CO2 (Figure 5)
 # Phosphorus
 p <- plot_facet(data = figure_5_data, 
                 var_name = "Phosphorus", 
-                xint_1 = maxes$max_date[maxes$color=="Total P"],
+                xint_1 = maxes$max_date[maxes$color=="Total phosphorus"],
                 xint_2 = maxes$max_date[maxes$color=="Phosphate"],
                 color = c("black","black"),
                 ylab = expression(atop(NA, 
@@ -178,7 +178,7 @@ p <- plot_facet(data = figure_5_data,
 # Nitrogen
 n <- plot_facet(data = figure_5_data, 
                 var_name = "Nitrogen", 
-                xint_1 = maxes$max_date[maxes$color=="Total N"],
+                xint_1 = maxes$max_date[maxes$color=="Total nitrogen"],
                 xint_2 = maxes$max_date[maxes$color=="Ammonium"],
                 color = c("magenta4", "magenta4"),
                 ylab = expression(atop(NA, 

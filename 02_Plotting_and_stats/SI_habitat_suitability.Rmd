@@ -13,6 +13,7 @@ Step 1: Load data
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(lubridate)
+library(ggpubr)
 
 df.final <- read_csv("../Processed_data/CTD trimmed.csv")
 
@@ -37,8 +38,7 @@ lines_rect <- data.frame(closed = as.Date("2022-06-28"),
                          opened = as.Date("2022-05-19"), 
                          Year = 2022, year_class = "2022")
 
-jpeg("../Figs/SI_TDO3.jpg",res = 300, units = "in",width = 6, height = 4)
-oxy%>%
+tdo3 <- oxy%>%
   filter(Site==50,
          month(Date)>4,
          month(Date)<9)%>%
@@ -51,10 +51,8 @@ oxy%>%
   scale_linetype_manual(values = c("solid","dashed"))+
   theme_bw()+
   theme(axis.title.x = element_blank())
-dev.off()
 
-jpeg("../Figs/SI_Depth_DO3.jpg",res = 300, units = "in",width = 6, height = 4)
-oxy%>%
+ddo3 <- oxy%>%
   filter(Site==50,
          month(Date)>4,
          month(Date)<9)%>%
@@ -68,5 +66,8 @@ oxy%>%
   scale_y_reverse(lim = c(NA,0))+
   theme_bw()+
   theme(axis.title.x = element_blank())
+
+jpeg("../Figs/SI_Depth_Temp_DO3.jpg",res = 300, units = "in",width = 6, height = 4)
+ggarrange(ddo3, tdo3, common.legend = T, legend = "bottom", labels = "auto")
 dev.off()
 ```
