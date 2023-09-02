@@ -28,7 +28,7 @@ weather_sum = met%>%
   filter(Year %in% c(2021,2022))%>%
   mutate(Year = as.factor(Year))%>%
   group_by(Date,Year)%>%
-  summarize(Rain_Total_mm = mean(Rain_Total_mm, na.rm = T),
+  summarize(Rain_Total_mm = sum(Rain_Total_mm, na.rm = T),
             AirTemp_C_Average = mean(AirTemp_C_Average,na.rm=T),
             WindSpeed_Average_m_s = mean(WindSpeed_Average_m_s,na.rm=T))%>%
   mutate(DOY = yday(Date))

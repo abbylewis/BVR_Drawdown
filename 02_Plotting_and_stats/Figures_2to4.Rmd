@@ -72,7 +72,7 @@ schmidt_fig <- schmidt_df%>%
   scale_fill_manual(values = c("black","#00F7FF"))+
   scale_color_manual(values = c("black","#0800FA"))+
   geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
-  ylab(expression(paste("Schmidt stability ", "(", J~m^-2, ")")))+
+  ylab(expression(paste("Schmidt stability ", "(J/",m^2, ")")))+
   theme_bw()+
   scale_x_date(date_breaks = "2 month", date_labels =  "%b")+
   theme(axis.title.x = element_blank(),
@@ -169,25 +169,6 @@ temp <- weather_sum%>%
   scale_x_date(date_breaks = "2 month", date_labels =  "%b")+
   theme(axis.title.x = element_blank())
 
-air_temp_plot <- weather_sum%>%
-  mutate(Year = year(Date),
-         Air_Temp = AirTemp_C_Average,
-         DOY = yday(Date),
-         #Making a date column where year is the same to standardize x-axes
-         Date_22 = DOY + as.Date("2021-12-31"))%>% 
-  filter(Year %in% c(2021,2022),
-         !is.na(AirTemp_C_Average))%>%
-  mutate(Year = as.factor(Year))%>%
-  group_by(Date_22,Year)%>%
-  summarize(Air_Temp = mean(Air_Temp))%>%
-  arrange(Year,Date_22)
-
-air_temp_plot%>%
-  filter(Date_22>="2022-05-19"&Date_22<="2022-07-01")%>%
-  group_by(Year)%>%
-  summarize(mean = mean(Air_Temp),
-            sd = sd(Air_Temp))
-
 legend <- get_legend(temp)
 jpeg("../Figs/Figure_4.jpg",res = 300, units = "in",width = 8, height = 6)
 plot_grid(temp+theme(legend.position = "none"),
@@ -199,6 +180,49 @@ plot_grid(temp+theme(legend.position = "none"),
           align = "hv",
           labels = list("a","b","c","d","e",""),
           nrow=2,ncol=3,axis = "rltb")
+dev.off()
+
+## SI meteorology plots: rain and wind
+
+# Rain
+cum_rain = weather_sum%>%
+  group_by(Year)%>%
+  mutate(cum_rain_mm = cumsum(Rain_Total_mm),
+         Year = as.factor(Year),
+         Date_22 = DOY + as.Date("2021-12-31"))
+rain_cum = cum_rain%>%
+  ggplot()+
+  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),
+            fill = "grey40", data = lines_rect, alpha = 0.2)+
+  geom_line(aes(x = Date_22, y = cum_rain_mm, color = Year),size = 1.5)+
+  scale_color_manual(values = c("black","#0800FA"))+
+  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
+  scale_linetype_manual(values = c("solid","dashed"))+
+  ylab("Cumulative rain (mm)")+
+  theme_bw()+
+  scale_x_date(date_breaks = "2 month", date_labels =  "%b")+
+  theme(axis.title.x = element_blank())
+# Wind
+wind = weather_sum%>%
+  mutate(Year = as.factor(Year),
+         Wind = WindSpeed_Average_m_s,
+         #Making a date column where year is the same to standardize x-axes
+         Date_22 = DOY + as.Date("2021-12-31"))%>% 
+  ggplot()+
+  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),
+            fill = "grey40", data = lines_rect, alpha = 0.2)+
+  geom_point(aes(x = Date_22, y = Wind, fill = Year, color = Year), 
+             shape = 21, stroke = .5, size = 1.5)+
+  scale_fill_manual(values = c("black","#00F7FF"))+
+  scale_color_manual(values = c("black","#0800FA"))+
+  geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
+  ylab("Wind speed (m/s)")+
+  theme_bw()+
+  scale_x_date(date_breaks = "2 month", date_labels =  "%b")+
+  theme(axis.title.x = element_blank())
+
+jpeg("../Figs/SI_met.jpg",res = 300, units = "in",width = 6, height = 4)
+ggarrange(rain_cum, wind, legend = "bottom", labels = "auto")
 dev.off()
 ```
 
@@ -409,7 +433,7 @@ lines_rect <- lines%>%
   pivot_wider(names_from = desc, values_from = Dates)
 
 vars <- c("DO_mgL")
-names <- c("Dissolved Oxygen\n(mg/L)")
+names <- c("Dissolved oxygen\n(mg/L)")
 Years <- 2021:2022
 Sites <- c(50)
 
