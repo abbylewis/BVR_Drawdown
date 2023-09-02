@@ -205,20 +205,25 @@ dev.off()
 
 Step 4: Plot volume, divided by layer
 ```{r}
-jpeg("../Figs/Figure_2c.jpeg",width = 4.5, height = 4.5, units = "in", res = 300)
+jpeg("../Figs/Figure_2c.jpeg",width = 6.5, height = 3, units = "in", res = 300)
 meta_ratio%>%
-  mutate(Year=as.factor(year(Date)))%>%
+  mutate(Year=as.factor(year(Date)),
+         Date_22 = DOY + as.Date("2021-12-31"))%>%
   filter(!Year==2020,
          month(Date)>=5,
          month(Date)<10)%>%
   dplyr::select(Date_22, Year, epi_volume,hypo_volume)%>%
   pivot_longer(cols = c(epi_volume,hypo_volume))%>%
-  mutate(name = ifelse(name=="epi_volume","Epilimnetic volume","Hypolimnetic volume"),
-         name = factor(name,levels = c("Epilimnetic volume","Hypolimnetic volume")))%>%
+  mutate(name = ifelse(name=="epi_volume",
+                       "Epilimnetic volume",
+                       "Hypolimnetic volume"),
+         name = factor(name,levels = c("Epilimnetic volume",
+                                       "Hypolimnetic volume")))%>%
   ggplot()+
   scale_fill_manual(values = c("#77c7fc","#104466"))+
   geom_area(aes(x = Date_22, y = value/1000, fill = name))+
-  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "black", data = lines_rect, alpha = 0.15)+
+  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),
+            fill = "black", data = lines_rect, alpha = 0.15)+
   geom_vline(data=lines,aes(xintercept = Dates, lty = status), show.legend = F)+
   scale_linetype_manual(values = c("solid","dashed"))+
   facet_grid(rows = ~Year, scales = "free_x", space = "free_x")+
@@ -312,7 +317,10 @@ sensor_depth_plot <- filt_no_surf%>%
   unique()%>%
   mutate(Date=as.Date(paste0(Year,"-01-01")))
 
-custom_heatmap_palette <- c("#313695", "#4575b4", "#74add1","#abd9e9", "#e0f3f8", "#ffffbf", "#fee090","#fdae61", "#f46d43", "#d73027", "#a50026")
+custom_heatmap_palette <- c("#313695", "#4575b4", "#74add1",
+                            "#abd9e9", "#e0f3f8", "#ffffbf", 
+                            "#fee090","#fdae61", "#f46d43", 
+                            "#d73027", "#a50026")
 
 #Heatmap
 jpeg(paste0("../Figs/BVR_catwalk_heatmap_2022.jpeg"),width = 8, height = 4, units = "in", res = 300)
@@ -322,11 +330,16 @@ water_temp <- interp%>%
   filter(!is.na(z))%>%
   ggplot()+
   geom_raster(aes(x=x, y=y,fill = z))+
-  geom_ribbon(data = depth_sum, aes(x = Date, ymin= Reservoir_depth, ymax = max), fill = "white", color = "black",lwd=.3)+
-  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "black", data = lines_rect, alpha = 0.15)+
+  geom_ribbon(data = depth_sum, 
+              aes(x = Date, ymin= Reservoir_depth, ymax = max), 
+              fill = "white", color = "black",lwd=.3)+
+  geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),
+            fill = "black", data = lines_rect, alpha = 0.15)+
   geom_line(data = thermo_raw%>%
               mutate(Year=year(Date))%>%
-              filter(Year%in%c(2021,2022)), aes(x = Date, y = Reservoir_depth-thermo, lty = "Thermocline"), lwd = .2)+
+              filter(Year%in%c(2021,2022)), 
+            aes(x = Date, y = Reservoir_depth-thermo, lty = "Thermocline"), 
+            lwd = .2)+
   geom_hline(aes(yintercept = 6.6, lty = "Outtake pipe"), alpha = 0.3)+
   labs(y = "Height above sediments (m)")+
   scale_x_date(expand = c(0,0))+
@@ -338,9 +351,13 @@ water_temp <- interp%>%
              space = "free"
              )+
   labs(color = "")+
-  geom_point(data = sensor_depth_plot, aes(x = Date, y = Sensor_depth), shape = 23, fill = "black", color = "white", size  =2.5)+
+  geom_point(data = sensor_depth_plot, 
+             aes(x = Date, y = Sensor_depth), 
+             shape = 23, fill = "black", color = "white", size  =2.5)+
   geom_vline(data=lines,aes(xintercept = Dates), show.legend = F)+
-  scale_linetype_manual(values = c("solid","84"),limits = c("Thermocline","Outtake pipe"),  name= NULL)+
+  scale_linetype_manual(values = c("solid","84"),
+                        limits = c("Thermocline","Outtake pipe"),  
+                        name= NULL)+
   scale_fill_gradientn(name = "Water temperature\n(°C)",
                        limits = c(-1, 30),
                        colours = custom_heatmap_palette)
@@ -441,12 +458,18 @@ for(i in 1:length(vars)){
     geom_raster(aes(x=x,fill = z, y=y))+
     scale_y_continuous(expand = c(0,0),limits = c(0, NA))+
     labs(y = "Height above sediments (m)")+
-    scale_fill_gradientn(colours = if(var%in%c("DO_mgL","DO_pSat","ORP_mV")){rev(custom_heatmap_palette)}else{custom_heatmap_palette}, na.value="white", name = names[i])+
-    geom_ribbon(data = sensor_depth, aes(x = Date, ymin= Reservoir_depth, ymax = max), fill = "white",color = "black",lwd=.2)+
-    geom_point(data = bvr, aes(x = Date, y = max), shape = 25, fill = "black", color = "white", size  =2)+
-    geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),fill = "black", data = lines_rect, alpha = 0.15)+
+    scale_fill_gradientn(colours = if(var%in%c("DO_mgL","DO_pSat","ORP_mV")){rev(custom_heatmap_palette)}else{custom_heatmap_palette}, 
+      na.value="white", name = names[i])+
+    geom_ribbon(data = sensor_depth, 
+                aes(x = Date, ymin= Reservoir_depth, ymax = max), 
+                fill = "white",color = "black",lwd=.2)+
+    geom_point(data = bvr, aes(x = Date, y = max), 
+               shape = 25, fill = "black", color = "white", size  =2)+
+    geom_rect(aes(xmin = opened,xmax = closed,ymin=-Inf,ymax=Inf),
+              fill = "black", data = lines_rect, alpha = 0.15)+
     geom_vline(data=lines,aes(xintercept = Dates), show.legend = F)+
-    geom_hline(aes(yintercept = 6.6, lty = "Outtake pipe"), alpha = 0.3, lty = "84")+
+    geom_hline(aes(yintercept = 6.6, lty = "Outtake pipe"), 
+               alpha = 0.3, lty = "84")+
     scale_x_date(expand = c(0,0))+
     theme(panel.border = element_rect(fill = NA),
           panel.background = element_rect(fill = "white"),
@@ -489,7 +512,8 @@ mean_temps <- vw_temp_df%>%
                    sd = sd(vw_temp, na.rm = T))
 
 # change in vw_temp
-mean_temps$mean[which(mean_temps$Year == 2021)] - mean_temps$mean[which(mean_temps$Year == 2022)]
+mean_temps$mean[which(mean_temps$Year == 2021)] - 
+  mean_temps$mean[which(mean_temps$Year == 2022)]
 
 mean_buoy <- buoy_max%>%
   filter(month(Date)%in%c(7))%>%
@@ -499,7 +523,8 @@ mean_buoy <- buoy_max%>%
                    sd = sd(max, na.rm = T))
 
 # change in buoyancy frequency
-((mean_buoy$mean[which(mean_buoy$Year == 2022)] - mean_buoy$mean[which(mean_buoy$Year == 2021)])/mean_buoy$mean[which(mean_buoy$Year == 2021)]) 
+(mean_buoy$mean[which(mean_buoy$Year == 2022)] - mean_buoy$mean[which(mean_buoy$Year == 2021)]) / 
+    mean_buoy$mean[which(mean_buoy$Year == 2021)]
 
 mean_schmidt <- schmidt_df%>%
   filter(month(Date)%in%c(7))%>%
@@ -508,7 +533,7 @@ mean_schmidt <- schmidt_df%>%
                    sd = sd(Schmidt, na.rm = T))
 
 # change in schmidt stability
-((mean_schmidt$mean[which(mean_schmidt$Year == 2021)] - mean_schmidt$mean[which(mean_schmidt$Year == 2022)])/mean_schmidt$mean[which(mean_schmidt$Year == 2021)]) 
+(mean_schmidt$mean[which(mean_schmidt$Year == 2021)] - mean_schmidt$mean[which(mean_schmidt$Year == 2022)]) / mean_schmidt$mean[which(mean_schmidt$Year == 2021)]
 
 
 #Meteorology
@@ -521,7 +546,8 @@ avg_wind<- met_drawdown%>%
 # Average air temperatures
 avg_AT <- met_drawdown%>%
   group_by(Year) %>% 
-  summarise(mean_air=mean(AirTemp_C_Average, na.rm=T), sd_air=sd(AirTemp_C_Average, na.rm=T ))
+  summarise(mean_air=mean(AirTemp_C_Average, na.rm=T), 
+            sd_air=sd(AirTemp_C_Average, na.rm=T ))
 # Average daily precipitation 
 avg_rain <- met_drawdown%>%
   mutate(Date = as.Date(DateTime))%>%
@@ -529,5 +555,6 @@ avg_rain <- met_drawdown%>%
   summarise(total_rain_day=sum(Rain_Total_mm))
 rain <- avg_rain%>%
   group_by(Year)%>%
-  summarise(mean_rain=mean(total_rain_day, na.rm=T), sd_rain=sd(total_rain_day, na.rm=T))
+  summarise(mean_rain=mean(total_rain_day, na.rm=T), 
+            sd_rain=sd(total_rain_day, na.rm=T))
 ```
