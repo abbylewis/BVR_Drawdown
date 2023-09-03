@@ -421,6 +421,8 @@ figure_7_data%>%
   mutate(max_date = ifelse(name %in% c("thermo", "DOsat_percent"),
                            min_date,
                            max_date))
+
+min(ctd$DO_mgL[ctd$Year==2022], na.rm = T)
 ```
 
 
