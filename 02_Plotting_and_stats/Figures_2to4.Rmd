@@ -39,6 +39,7 @@ weather_sum  <- read_csv("../Processed_data/Weather_sum.csv")%>%
 thermo_raw <- read_csv("../Processed_data/thermocline_depth.csv")
 df.final <- read_csv("../Processed_data/CTD trimmed.csv")
 met_drawdown <- read_csv("../Processed_data/Weather_drawdown.csv")
+sa <- read_csv("../Processed_data/Dynamic_surface_area.csv")
 
 # Set lines
 lines <- data.frame(Dates = as.Date(c("2022-06-28", "2022-05-19")), 
@@ -421,17 +422,6 @@ bottom <- df.final%>%
 ctd_adj_depth <- ctd_sensor%>%
   full_join(bottom)
 
-lines <- data.frame(Dates = as.Date(c("2022-06-28", "2022-05-19","2022-05-28", "2022-07-01")), 
-                    desc = c("closed","opened", "decreasing", "stable"), 
-                    type = c("close","open","open","close"), status = c("init","init","final","final"),
-                    Year = 2022)
-lines <- lines%>%
-  filter(status == "init")
-#Re-format for rectangle instead of discrete lines
-lines_rect <- lines%>%
-  select(-type)%>%
-  pivot_wider(names_from = desc, values_from = Dates)
-
 vars <- c("DO_mgL")
 names <- c("Dissolved oxygen\n(mg/L)")
 Years <- 2021:2022
@@ -515,6 +505,17 @@ dev.off()
 
 Step 7: Stats for paper
 ```{r}
+# How much did surface area change as a result of drawdown?
+sa %>%
+  mutate(timepoint = ifelse(DOY == yday("2022-05-19"), "start",
+                            ifelse(DOY == yday("2022-06-28"), "end", 
+                                   NA))) %>%
+  filter(!is.na(timepoint)) %>%
+  select(Year, timepoint, linear_approx_SA) %>%
+  pivot_wider(names_from = timepoint, 
+              values_from = linear_approx_SA) %>%
+  mutate(change_m2 = end - start)
+
 #Turnover dates
 turnover_dates <- surf%>%
   rename(surf_temp = Reading)%>%

@@ -252,3 +252,28 @@ meta_ratio <- flexible_bathy%>%
 
 write.csv(meta_ratio, "../Processed_data/meta_ratio.csv", row.names = F)
 ```
+
+Step 9: Calculate dynamic surface area of the reservoir
+```{r}
+flexible_bathy <- cat_depths%>%
+  mutate(Reservoir = "BVR")%>%
+  full_join(bathy)%>%
+  group_by(Date)%>%
+  mutate(Depth_m = Depth_m - (max(Depth_m)-unique(WaterLevel)) + 1)%>%
+  filter(Depth_m>=-1) #Because we're now adjusting for surface volume
+
+sa <- flexible_bathy%>%
+  group_by(Date)%>%
+  dplyr::summarize(
+            SA_above_water = unique(SA_m2[Depth_m < 0]),
+            depth_above_water = unique(Depth_m[Depth_m < 0]),
+            SA_under_water = SA_m2[Depth_m > 0 & Depth_m < 1],
+            Dif = abs(unique(SA_above_water)) - abs(unique(SA_under_water)),
+            linear_approx_SA = abs(unique(SA_above_water)) +
+              Dif * depth_above_water
+  )%>%
+  mutate(DOY = yday(Date),
+         Year = year(Date))
+
+write.csv(sa, "../Processed_data/Dynamic_surface_area.csv", row.names = F)
+```
