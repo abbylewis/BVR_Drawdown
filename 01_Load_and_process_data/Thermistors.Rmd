@@ -123,10 +123,11 @@ Step 4: Calculate Schmidt stability
 schmidts <- numeric(length(unique(catwalk_format$Date)))
 dates <- unique(catwalk_format$Date)
 for(i in 1:length(dates)) {
-  temps <- catwalk_format%>%
-    filter(Date == dates[i])
   baths <- flexible_bathy%>%
     filter(Date==dates[i])
+  temps <- catwalk_format%>%
+    filter(Date == dates[i],
+           Sensor_depth > min(baths$Depth_m))
   schmidts[i] <- schmidt.stability(wtr = temps$Reading, 
                                   depths = temps$Sensor_depth, 
                                   bthA = baths$SA_m2, 
@@ -249,6 +250,7 @@ meta_ratio <- flexible_bathy%>%
             epi_hypo_ratio = unique(epi_volume / hypo_volume)
   )%>%
   mutate(DOY = yday(Date))
+  
 
 write.csv(meta_ratio, "../Processed_data/meta_ratio.csv", row.names = F)
 ```
