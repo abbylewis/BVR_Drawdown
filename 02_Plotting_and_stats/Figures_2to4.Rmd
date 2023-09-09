@@ -223,7 +223,7 @@ wind = weather_sum%>%
   theme(axis.title.x = element_blank())
 
 jpeg("../Figs/SI_met.jpg",res = 300, units = "in",width = 6, height = 4)
-ggarrange(rain_cum, wind, legend = "bottom", labels = "auto")
+ggarrange(rain_cum, wind, legend = " <- tom", labels = "auto")
 dev.off()
 ```
 
@@ -505,6 +505,28 @@ dev.off()
 
 Step 7: Stats for paper
 ```{r}
+#### Drawdown extent
+
+# How much did volume change as a result of drawdown?
+vol_change <- meta_ratio%>%
+  mutate(Year = year(Date),
+         DOY = yday(Date),
+         timepoint = ifelse(DOY == yday("2022-05-19"), "start",
+                            ifelse(DOY == yday("2022-06-28"), "end", 
+                                   NA))) %>%
+  filter(!is.na(timepoint)) %>%
+  select(Year, timepoint, total_volume, epi_volume, hypo_volume) %>%
+  pivot_wider(names_from = timepoint, 
+              values_from = c(total_volume, epi_volume, hypo_volume)) %>%
+  mutate(total_change_L = total_volume_end - total_volume_start,
+         total_change_pct = total_change_L/total_volume_start*100,
+         epi_change_L = epi_volume_end - epi_volume_start,
+         epi_change_pct = epi_change_L/epi_volume_start*100,
+         hypo_change_L = hypo_volume_end - hypo_volume_start,
+         hypo_change_pct = hypo_change_L/hypo_volume_start*100)
+
+vol_change$epi_change_L/vol_change$total_change_L*100
+
 # How much did surface area change as a result of drawdown?
 sa %>%
   mutate(timepoint = ifelse(DOY == yday("2022-05-19"), "start",
@@ -514,8 +536,28 @@ sa %>%
   select(Year, timepoint, linear_approx_SA) %>%
   pivot_wider(names_from = timepoint, 
               values_from = linear_approx_SA) %>%
-  mutate(change_m2 = end - start)
+  mutate(change_m2 = end - start,
+         change_pct = change_m2/start*100)
 
+# How much did depth change as a result of drawdown?
+cat_long %>%
+  mutate(Date = as.Date(DateTime))%>%
+  group_by(Date)%>%
+  summarize(Reservoir_depth = mean(Reservoir_depth, na.rm = T))%>%
+  mutate(Year = year(Date),
+         DOY = yday(Date),
+         timepoint = ifelse(DOY == yday("2022-05-19"), "start",
+                            ifelse(DOY == yday("2022-06-28"), "end", 
+                                   NA))) %>%
+  filter(!is.na(timepoint)) %>%
+  select(Year, timepoint, Reservoir_depth) %>%
+  pivot_wider(names_from = timepoint, 
+              values_from = Reservoir_depth) %>%
+  mutate(change_m = end - start,
+         change_pct = change_m/start*100)
+
+
+#### Temperature dynamics
 #Turnover dates
 turnover_dates <- surf%>%
   rename(surf_temp = Reading)%>%
@@ -561,7 +603,7 @@ mean_schmidt <- schmidt_df%>%
 (mean_schmidt$mean[which(mean_schmidt$Year == 2021)] - mean_schmidt$mean[which(mean_schmidt$Year == 2022)]) / mean_schmidt$mean[which(mean_schmidt$Year == 2021)]
 
 
-#Meteorology
+#### Meteorology
 
 # Average wind speed 
 avg_wind<- met_drawdown%>%
@@ -574,11 +616,11 @@ avg_AT <- met_drawdown%>%
   summarise(mean_air=mean(AirTemp_C_Average, na.rm=T), 
             sd_air=sd(AirTemp_C_Average, na.rm=T ))
 # Average daily precipitation 
-avg_rain <- met_drawdown%>%
+rain <- met_drawdown%>%
   mutate(Date = as.Date(DateTime))%>%
   group_by(Date, Year)%>%
   summarise(total_rain_day=sum(Rain_Total_mm))
-rain <- avg_rain%>%
+avg_rain <- rain%>%
   group_by(Year)%>%
   summarise(mean_rain=mean(total_rain_day, na.rm=T), 
             sd_rain=sd(total_rain_day, na.rm=T))

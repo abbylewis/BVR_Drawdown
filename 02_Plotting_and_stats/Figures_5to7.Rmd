@@ -125,7 +125,7 @@ figure_5_data <- chem_full%>%
                         levels=c("TP_ugL", "PO4_ugL", "TN_ugL", "NH4_ugL",
                                  "TotalConc_ugL", "Bluegreens_ugL",
                                  "DOC_mgL", "CO2_umolL"),
-                        labels=c("Total phosphorus", "Phosphate", "Total nitrogen", "Ammonium",
+                        labels=c("Total phosphorus", "SRP", "Total nitrogen", "Ammonium",
                                  "Total phytoplankton", "Cyanobacteria", 
                                  "DOC", "CO2")))
 
@@ -164,7 +164,7 @@ Code chunk 4: Make line plot of nutrients, phytos, DOC, and CO2 (Figure 5)
 p <- plot_facet(data = figure_5_data, 
                 var_name = "Phosphorus", 
                 xint_1 = maxes$max_date[maxes$color=="Total phosphorus"],
-                xint_2 = maxes$max_date[maxes$color=="Phosphate"],
+                xint_2 = maxes$max_date[maxes$color=="SRP"],
                 color = c("black","black"),
                 ylab = expression(atop(NA, 
                                        atop(textstyle("Phosphorus"), 
@@ -292,7 +292,8 @@ figure_6_data%>%
                       min,
                       max))%>%
   group_by(name,color)%>%
-  mutate(pct = (max[Year==2022]-max[Year==2021])/max[Year==2021]*100)
+  mutate(dif = max[Year == 2022] - max[Year == 2021],
+         pct = (max[Year==2022]-max[Year==2021])/max[Year==2021]*100)
 ```
 
 Code chunk 6: Make line plot of turbidity, euphotic zone, peak width, and peak depth (Figure 6)
@@ -420,7 +421,10 @@ figure_7_data%>%
             min = min(value))%>%
   mutate(max_date = ifelse(name %in% c("thermo", "DOsat_percent"),
                            min_date,
-                           max_date))
+                           max_date))%>%
+  group_by(name,color)%>%
+  mutate(dif = max[Year == 2022] - max[Year == 2021],
+         pct = (max[Year==2022]-max[Year==2021])/max[Year==2021]*100)
 
 min(ctd$DO_mgL[ctd$Year==2022], na.rm = T)
 ```
