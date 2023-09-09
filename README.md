@@ -8,7 +8,7 @@ Analyzing the effects of a 2022 drawdown on water quality in Beaverdam Reservoir
 
 ## Keywords
 
-Carbon dioxide, drawdown, dissolved oxygen, high-frequency sensors, nitrogen, phosphorus, phytoplankton, reservoir, thermal stratification, water level
+Drawdown, dissolved oxygen, phosphorus, phytoplankton, thermal stratification, water level
 
 ## Data availability
 
@@ -23,7 +23,7 @@ Carbon dioxide, drawdown, dissolved oxygen, high-frequency sensors, nitrogen, ph
     * [Metals](https://portal.edirepository.org/nis/mapbrowse?packageid=edi.455.7) (Schreiber et al. 2023)
 
 * Additional auxiliary data are presented in ./External data:
-    * NID_YearCompleted_SurfaceArea_State.csv: National Inventory of Dams Database (available [here](https://nid.sec.usace.army.mil/#/)). These data were obtained on xxxx (just in case it changes...)
+    * NID_YearCompleted_SurfaceArea_State.csv: National Inventory of Dams [Database](https://nid.sec.usace.army.mil/#/). These data were obtained in 2021 and are publicly availble from Carey et al. ([2022](https://zenodo.org/record/6520742)).
 
 ## Repo content information
 
