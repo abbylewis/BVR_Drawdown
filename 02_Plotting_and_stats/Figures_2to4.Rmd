@@ -624,4 +624,11 @@ avg_rain <- rain%>%
   group_by(Year)%>%
   summarise(mean_rain=mean(total_rain_day, na.rm=T), 
             sd_rain=sd(total_rain_day, na.rm=T))
+rain_annual <- weather_sum%>%
+  group_by(Date, Year)%>%
+  summarise(total_rain_day=sum(Rain_Total_mm))
+avg_rain_annual <- rain_annual%>%
+  group_by(Year)%>%
+  summarise(mean_rain=mean(total_rain_day, na.rm=T), 
+            sd_rain=sd(total_rain_day, na.rm=T))
 ```
