@@ -223,7 +223,7 @@ wind = weather_sum%>%
   theme(axis.title.x = element_blank())
 
 jpeg("../Figs/SI_met.jpg",res = 300, units = "in",width = 6, height = 4)
-ggarrange(rain_cum, wind, legend = " <- tom", labels = "auto")
+ggarrange(rain_cum, wind, legend = "bottom", labels = "auto")
 dev.off()
 ```
 
@@ -231,8 +231,9 @@ dev.off()
 Step 4: Plot volume, divided by layer
 ```{r}
 jpeg("../Figs/Figure_2c.jpeg",width = 6.5, height = 3, units = "in", res = 300)
-meta_ratio%>%
-  mutate(Year=as.factor(year(Date)),
+meta_ratio %>%
+  mutate(Year = as.factor(year(Date)),
+         DOY = yday(Date),
          Date_22 = DOY + as.Date("2021-12-31"))%>%
   filter(!Year==2020,
          month(Date)>=5,
@@ -508,7 +509,7 @@ Step 7: Stats for paper
 #### Drawdown extent
 
 # How much did volume change as a result of drawdown?
-vol_change <- meta_ratio%>%
+vol_change <- meta_ratio %>%
   mutate(Year = year(Date),
          DOY = yday(Date),
          timepoint = ifelse(DOY == yday("2022-05-19"), "start",
@@ -573,14 +574,21 @@ turnover_dates <- surf%>%
 yday(turnover_dates$turnover[which(turnover_dates$Year == 2021)]) - yday(turnover_dates$turnover[which(turnover_dates$Year == 2022)])
 
 mean_temps <- vw_temp_df%>%
-  filter(month(Date)%in%c(7))%>%
-  group_by(Year)%>%
+  filter(month(Date) %in% c(7))%>%
+  group_by(Year) %>%
   dplyr::summarise(mean = mean(vw_temp, na.rm = T),
                    sd = sd(vw_temp, na.rm = T))
 
 # change in vw_temp
 mean_temps$mean[which(mean_temps$Year == 2021)] - 
   mean_temps$mean[which(mean_temps$Year == 2022)]
+
+# change in surface temp
+surf%>%
+  filter(month(Date) %in% c(7))%>%
+  group_by(Year) %>%
+  dplyr::summarise(mean = mean(Reading, na.rm = T),
+                   sd = sd(Reading, na.rm = T))
 
 mean_buoy <- buoy_max%>%
   filter(month(Date)%in%c(7))%>%
