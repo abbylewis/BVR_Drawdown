@@ -450,6 +450,7 @@ thermo <- plot_facet(data = figure_7_data,
                                                  face = "bold", 
                                                  vjust = 2))
 
+#Alternative metric considered in the review process- depth at which DO < 2 mg/L
 hypoxy <- plot_facet(data = figure_7_data, 
                      var_name = "hypoxycline", 
                      xint_1 = maxes$max_date[maxes$color=="hypoxycline"],
@@ -485,51 +486,13 @@ mn <- plot_facet(data = figure_7_data,
                  axis.ticks = element_line(colour = "black"), 
                  legend.position = c(0.18,0.66))
 
-figure_7 <- wrap_plots(thermo, hypoxy, do_sat, fe, mn, nrow = 5)
+figure_7 <- wrap_plots(thermo, do_sat, fe, mn, nrow = 4)
 
 ggsave(file="../Figs/Figure_7.jpeg",
        figure_7, 
        dpi = 300, 
        width = 6, 
-       height = 5, 
+       height = 4, 
        bg = "white")
  
-```
-
-Code chunk 9: For review
-```{r modified Oxygen figure}
-#combine relevant data
-figure_7_data <- thermo_depth%>%
-  full_join(ctd %>% select(-Year,-Depth_m))%>%
-  full_join(metals)%>%
-  select(Date, TFe_mgL, TMn_mgL, SFe_mgL, SMn_mgL, DOsat_percent, DO_mgL, thermo)%>%
-  #Pivot for facet wrap
-  pivot_longer(cols = c(TFe_mgL, TMn_mgL, SFe_mgL, SMn_mgL, DOsat_percent, DO_mgL, thermo))%>% 
-  filter(!is.na(value),
-         month(Date) > 4,
-         month(Date) < 9)%>%
-  mutate(Year = year(Date),
-         color = name,
-         name = ifelse(name %in% c("SFe_mgL", "TFe_mgL"), "Fe_mgL", name),
-         name = ifelse(name %in% c("SMn_mgL", "TMn_mgL"), "Mn_mgL", name),
-         color = factor(color, 
-                        levels = c("thermo", "DOsat_percent", "DO_mgL", "TFe_mgL", 
-                                   "TMn_mgL", "SFe_mgL", "SMn_mgL"),
-                        labels = c("thermo", "DOsat_percent", "DO_mgL", "Total Fe", 
-                                   "Total Mn", "Soluble Fe", "Soluble Mn")))
-
-do_mgL <- plot_facet(data = figure_7_data, 
-                     var_name = "DO_mgL", 
-                     xint_1 = maxes$max_date[maxes$color=="DO_mgL"],
-                     color = "cyan4",
-                     ylab = "Surface DO\n(mg/L)")
-
-figure_7_review <- wrap_plots(thermo, do_sat, do_mgL, fe, mn, nrow=5)
-
-ggsave(file="../Figs/Figure_7_forReview.jpeg",
-       figure_7_review, 
-       dpi = 300, 
-       width = 6, 
-       height = 5, 
-       bg = "white")
 ```

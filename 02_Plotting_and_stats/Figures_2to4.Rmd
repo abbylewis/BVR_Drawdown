@@ -31,8 +31,7 @@ source("../R/thermo.depth.density.R")
 schmidt_df <- read_csv("../Processed_data/Schmidt.csv")
 buoy_max <- read_csv("../Processed_data/BF.csv")
 vw_temp_df <- read_csv("../Processed_data/VW_temp.csv")
-cat_long <- read_csv("../Processed_data/BVR_longoutput.csv")%>%
-  filter(Sensor_depth>0)
+cat_long <- read_csv("../Processed_data/BVR_longoutput.csv")
 meta_ratio <- read_csv("../Processed_data/meta_ratio.csv")
 weather_sum  <- read_csv("../Processed_data/Weather_sum.csv")%>%
   mutate(Date_22 = DOY + as.Date("2021-12-31"))

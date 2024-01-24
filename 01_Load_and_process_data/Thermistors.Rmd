@@ -78,7 +78,8 @@ cat_long <- bvr_pre_05APR21%>%
          Reservoir_depth, 
          Distance_above_sediments)
 
-write.csv(cat_long,"../Processed_data/BVR_longoutput.csv", row.names = F)
+write.csv(cat_long %>% filter(Sensor_depth>0),
+          "../Processed_data/BVR_longoutput.csv", row.names = F)
 
 #Format temperature data for lake analyzer
 catwalk_format <- cat_long%>%
