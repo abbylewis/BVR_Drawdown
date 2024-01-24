@@ -14,6 +14,10 @@ authors:
     given-names: Freya
     orcid: https://orcid.org/0000-0002-0483-4489
 title: "abbylewis/BVR_Drawdown: Effects of a 2022 drawdown on water quality in Beaverdam Reservoir"
+date-released: 2024-01-24
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.8330109
 version: v1.0.0
 repository-code: "https://github.com/abbylewis/BVR_Drawdown"
 license: MIT
