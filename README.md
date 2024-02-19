@@ -4,7 +4,8 @@
 
 Analyzing the effects of a 2022 drawdown on water quality in Beaverdam Reservoir
 
-![Graphical abstract for BVR drawdown](https://github.com/abbylewis/BVR_Drawdown/assets/51751937/cd04fca6-2424-43f3-a99d-2fd2ba2ba5bc)
+![Graphical abstract for BVR drawdown](https://github.com/abbylewis/BVR_Drawdown/assets/51751937/58ff61f4-6e07-43e0-beed-0060f01f51fd)
+
 
 ## Keywords
 
